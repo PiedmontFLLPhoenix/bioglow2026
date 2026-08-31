@@ -50,9 +50,25 @@ function today() {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
+// The robot and the innovation project need different questions, so each entry
+// records which one it is and gets headings to match.
+const KINDS = {
+  robot: {
+    label: 'Robot',
+    tried: 'What we tried',
+    happened: 'What happened'
+  },
+  project: {
+    label: 'Innovation project',
+    tried: 'What we did',
+    happened: 'What we found out'
+  }
+};
+
 function writeEntry(f) {
   fs.mkdirSync(NOTEBOOK, { recursive: true });
-  const base = `${today()}-${slug(f.mission)}`;
+  const kind = KINDS[f.kind] ? f.kind : 'robot';
+  const base = `${today()}-${kind}-${slug(f.mission)}`;
   let name = `${base}.md`;
   let n = 2;
   while (fs.existsSync(path.join(NOTEBOOK, name))) name = `${base}-${n++}.md`;
@@ -60,20 +76,24 @@ function writeEntry(f) {
   const md = [
     `# ${today()} - ${f.mission}`,
     ``,
+    `**Kind:** ${KINDS[kind].label}`,
     `**Who was here:** ${f.who}`,
     `**Written by:** ${f.author}`,
     ``,
-    `## What we tried`,
+    `## ${KINDS[kind].tried}`,
     f.tried,
     ``,
-    `## What happened`,
+    `## ${KINDS[kind].happened}`,
     f.happened,
     ``,
+    ...(f.sources ? [`## Who we talked to, or where we found it`, f.sources, ``] : []),
     `## What next`,
     f.next,
     ``,
     `---`,
-    `Code downloaded from Pybricks: yes. Parts cleaned up: yes, said by ${f.author}.`,
+    kind === 'project'
+      ? `Tidied up: yes, said by ${f.author}.`
+      : `Code downloaded from Pybricks: yes. Parts cleaned up: yes, said by ${f.author}.`,
     ``
   ].join('\n');
 
@@ -90,7 +110,8 @@ function saveAndPush(f) {
   say(`Your log entry is saved on this computer (${file})`, true);
 
   const summary = (f.happened.split('\n')[0] || '').slice(0, 60);
-  const commitMessage = `${f.mission}: ${summary} (${f.author})`;
+  const kindLabel = KINDS[f.kind] ? KINDS[f.kind].label : KINDS.robot.label;
+  const commitMessage = `${kindLabel} - ${f.mission}: ${summary} (${f.author})`;
 
   const add = git('add', '-A');
   if (!add.ok) { say(explain(add.out), false, add.out); return { steps, pushed: false }; }
@@ -183,6 +204,7 @@ function readEntries() {
         name,
         label: name.replace('.md', ''),
         names: find('Written by') || find('Who was here'),
+        kind: find('Kind') === KINDS.project.label ? 'project' : 'robot',
         html: render(body)
       };
     });
@@ -231,6 +253,22 @@ const STYLE = `
   .menu .date { display: block; font-weight: 600; }
   .menu .names { display: block; font-size: 13px; color: #666; }
   .menu button.on .names { color: #b9c9e2; }
+  .folder { margin-bottom: 22px; }
+  .folder h3 { margin: 0 0 3px; font: 600 16px ui-monospace, monospace; }
+  .folder .what { margin: 0 0 8px; color: #555; font-size: 14px; }
+  .folder ul { margin: 0; padding-left: 22px; }
+  .folder li { font: 14px ui-monospace, monospace; padding: 1px 0; }
+  .folder.warn h3 { color: #8a5a00; }
+  .side .what { font-size: 14px; color: #444; line-height: 1.55; }
+  .switch { display: flex; gap: 8px; margin: 14px 0 4px; }
+  .switch button { flex: 1; text-align: center; padding: 11px 8px; }
+  .switch button.on { background: #16233a; color: #fff; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px;
+         border-radius: 20px; background: #e4e9f1; color: #16233a; vertical-align: 2px; }
+  .tag.project { background: #e6f0e3; color: #24521a; }
+  .filter { display: flex; gap: 6px; margin-bottom: 12px; }
+  .filter button { flex: 1; text-align: center; padding: 7px 4px; font-size: 13px; }
+  .filter button.on { background: #16233a; color: #fff; }
   .side { background: #fff; border: 1px solid #e4e4de; border-radius: 10px; padding: 14px;
           position: sticky; top: 18px; }
   .side button { display: block; width: 100%; text-align: left; margin-bottom: 8px; }
@@ -251,21 +289,32 @@ const DASHBOARD = `<!doctype html>
   <div class="side">
     <button id="update">Download latest missions</button>
     <button class="plain" onclick="location.href='/blog'">Read engineering blog</button>
+    <button class="plain" onclick="location.href='/files'">File structure</button>
     <button class="plain" onclick="window.open('https://code.pybricks.com', '_blank')">Open Pybricks</button>
   </div>
 
   <div class="panel">
   <h1>Today&rsquo;s entry</h1>
 
+  <div class="switch">
+    <button id="t-robot" class="plain">Robot</button>
+    <button id="t-project" class="plain">Innovation project</button>
+  </div>
+
   <label>Who was here <span class="hint">everyone at the table today</span></label>
   <input id="who">
-  <label>Which mission <span class="hint">for example: M09 platform</span></label>
+  <label id="l-mission"></label>
   <input id="mission">
-  <label>What did we try <span class="hint">what did you change or test?</span></label>
+  <label id="l-tried"></label>
   <textarea id="tried"></textarea>
-  <label>What happened <span class="hint">did it work? how many times out of how many?</span></label>
+  <label id="l-happened"></label>
   <textarea id="happened"></textarea>
-  <label>What next <span class="hint">what should the team try next time?</span></label>
+  <div id="row-sources" hidden>
+    <label>Who we talked to, or where we found it
+      <span class="hint">names, websites, books &mdash; judges ask for these</span></label>
+    <input id="sources">
+  </div>
+  <label id="l-next"></label>
   <textarea id="next"></textarea>
   <label>Your name <span class="hint">who is writing this</span></label>
   <input id="author">
@@ -286,23 +335,58 @@ const DASHBOARD = `<!doctype html>
 </div></div>
 
 <script>
-const FIELDS = ['who','mission','tried','happened','next','author'];
+// Two kinds of session, two sets of questions.
+const TYPES = {
+  robot: {
+    mission:  ['Which mission', 'for example: M09 platform'],
+    tried:    ['What did we try', 'what did you change or test?'],
+    happened: ['What happened', 'did it work? how many times out of how many?'],
+    next:     ['What next', 'what should the team try next time?'],
+    gates: [
+      { ask: 'Did you remember to save and download your code from Pybricks?',
+        ifNo: 'Go back to Pybricks, click Backup to download your program, then press the button again.' },
+      { ask: 'Did you clean up your parts?', ifNo: 'Please do that and come back!' }
+    ]
+  },
+  project: {
+    mission:  ['Which part of the project', 'for example: talking to an expert'],
+    tried:    ['What did we do', 'research, an idea, a model, asking someone?'],
+    happened: ['What did we find out', 'what did you learn, or what did they tell you?'],
+    next:     ['What next', 'what should the team do next time?'],
+    gates: [
+      { ask: 'Did you write down who you talked to, or where you found it?',
+        ifNo: 'Add it in the box above - the judges always ask where your facts came from.' },
+      { ask: 'Did you clean up and put everything away?', ifNo: 'Please do that and come back!' }
+    ]
+  }
+};
+
+const BASE = ['who', 'mission', 'tried', 'happened', 'next', 'author'];
 const el = id => document.getElementById(id);
 const result = el('result');
+let kind = localStorage.getItem('log.kind') || 'robot';
 
-// Two questions before anything is saved. Answering No stops the save.
-const GATES = [
-  { ask: 'Did you remember to save and download your code from Pybricks?',
-    ifNo: 'Go back to Pybricks, click Backup to download your program, then press the button again.' },
-  { ask: 'Did you clean up your parts?',
-    ifNo: 'Please do that and come back!' }
-];
+const fields = () => kind === 'project' ? BASE.concat('sources') : BASE;
+
+function setType(k) {
+  kind = k;
+  localStorage.setItem('log.kind', k);
+  el('t-robot').classList.toggle('on', k === 'robot');
+  el('t-project').classList.toggle('on', k === 'project');
+  el('row-sources').hidden = k !== 'project';
+  ['mission', 'tried', 'happened', 'next'].forEach(id => {
+    el('l-' + id).innerHTML = TYPES[k][id][0] + ' <span class="hint">' + TYPES[k][id][1] + '</span>';
+  });
+}
+el('t-robot').onclick = () => setType('robot');
+el('t-project').onclick = () => setType('project');
 
 // Keep what they typed, in case the page reloads or the black window gets closed.
-FIELDS.forEach(id => {
+BASE.concat('sources').forEach(id => {
   el(id).value = localStorage.getItem('log.' + id) || '';
   el(id).addEventListener('input', () => localStorage.setItem('log.' + id, el(id).value));
 });
+setType(kind);
 
 function ask(gate) {
   return new Promise(resolve => {
@@ -326,7 +410,7 @@ function show(steps) {
 
 el('update').onclick = async () => {
   el('update').disabled = true;
-  result.innerHTML = '<div class="step">Checking GitHub…</div>';
+  result.innerHTML = '<div class="step">Checking GitHub&hellip;</div>';
   try {
     const res = await fetch('/update', { method: 'POST' });
     show((await res.json()).steps);
@@ -337,30 +421,29 @@ el('update').onclick = async () => {
 };
 
 el('save').onclick = async () => {
-  const entry = {};
-  FIELDS.forEach(id => entry[id] = el(id).value.trim());
-  const missing = FIELDS.filter(id => !entry[id]);
-  if (missing.length) {
+  const entry = { kind: kind };
+  fields().forEach(id => entry[id] = el(id).value.trim());
+  if (fields().some(id => !entry[id])) {
     result.innerHTML = '<div class="step bad">Please fill in every box first.</div>';
     return;
   }
 
-  for (const gate of GATES) {
+  for (const gate of TYPES[kind].gates) {
     if (!await ask(gate)) { result.innerHTML = ''; return; }   // No = nothing is saved
   }
 
   el('save').disabled = true;
-  result.innerHTML = '<div class="step">Saving…</div>';
+  result.innerHTML = '<div class="step">Saving&hellip;</div>';
   try {
     const res = await fetch('/save', { method: 'POST', body: JSON.stringify(entry) });
     const data = await res.json();
     show(data.steps);
     if (data.pushed) {
-      FIELDS.forEach(id => { el(id).value = ''; localStorage.removeItem('log.' + id); });
+      fields().forEach(id => { el(id).value = ''; localStorage.removeItem('log.' + id); });
       result.innerHTML += '<div class="done">All done. Nice work today!</div>';
     }
   } catch (e) {
-    result.innerHTML = '<div class="step bad">The tool stopped running. Your typing is still here — ' +
+    result.innerHTML = '<div class="step bad">The tool stopped running. Your typing is still here &mdash; ' +
       'do not close this tab, and ask your coach to start it again.</div>';
   }
   el('save').disabled = false;
@@ -375,7 +458,12 @@ function blogPage() {
     ? `<div class="layout">
          <div class="menu">
            <h4>Jump to an entry</h4>
-           ${entries.map((e, i) => `<button data-i="${i}">
+           <div class="filter">
+             <button data-kind="all" class="plain on">All</button>
+             <button data-kind="robot" class="plain">Robot</button>
+             <button data-kind="project" class="plain">Project</button>
+           </div>
+           ${entries.map((e, i) => `<button data-i="${i}" data-kind="${e.kind}">
                <span class="date">${escape(e.label)}</span>
                ${e.names ? `<span class="names">${escape(e.names)}</span>` : ''}
              </button>`).join('')}
@@ -397,7 +485,13 @@ function blogPage() {
 <script>
 const ENTRIES = ${data};
 if (ENTRIES.length) {
-  const buttons = [...document.querySelectorAll('.menu button')];
+  const buttons = [...document.querySelectorAll('.menu button[data-i]')];
+
+  // Show only robot entries, only project entries, or everything.
+  document.querySelectorAll('.filter button').forEach(f => f.onclick = () => {
+    document.querySelectorAll('.filter button').forEach(o => o.classList.toggle('on', o === f));
+    buttons.forEach(b => b.hidden = f.dataset.kind !== 'all' && b.dataset.kind !== f.dataset.kind);
+  });
   const open = (i) => {
     document.getElementById('pane').innerHTML = ENTRIES[i].html;
     buttons.forEach((b, n) => b.classList.toggle('on', n === i));
@@ -410,6 +504,80 @@ if (ENTRIES.length) {
   open(was === -1 ? 0 : was);
 }
 </script>`;
+}
+
+// What each folder in the team repo is for, in words a 10-year-old can use.
+const FOLDERS = {
+  'code':             'Robot programs the team has finished with and wants to keep.',
+  'missions':         'Where Pybricks programs land when you press Backup.',
+  'notebook':         'Every engineering log entry. This is what the judges read.',
+  'PhoenixDashboard': 'The team log tool itself - this program you are using right now.'
+};
+
+function filesPage() {
+  const tracked = git('ls-files');
+  const files = tracked.ok && tracked.out ? tracked.out.split('\n') : [];
+
+  const untracked = git('status', '--porcelain', '--untracked-files=all');
+  const waiting = untracked.ok && untracked.out
+    ? untracked.out.split('\n').filter(l => l.startsWith('??')).map(l => l.slice(3))
+    : [];
+
+  // Group by top folder; anything at the root goes in its own group.
+  const groups = {};
+  for (const f of files) {
+    const top = f.includes('/') ? f.split('/')[0] : 'the main folder';
+    (groups[top] = groups[top] || []).push(f);
+  }
+
+  const tree = Object.keys(groups).sort().map(folder => `
+    <div class="folder">
+      <h3>${escape(folder)}${folder === 'the main folder' ? '' : '/'}</h3>
+      ${FOLDERS[folder] ? `<p class="what">${FOLDERS[folder]}</p>` : ''}
+      <ul>${groups[folder].map(f =>
+        `<li>${escape(f.includes('/') ? f.split('/').slice(1).join('/') : f)}</li>`).join('')}</ul>
+    </div>`).join('');
+
+  const notSent = waiting.length
+    ? `<div class="folder warn">
+         <h3>On this computer only</h3>
+         <p class="what">These are not on GitHub yet. They go up the next time someone
+            presses <b>Save and send to GitHub</b>.</p>
+         <ul>${waiting.map(f => `<li>${escape(f)}</li>`).join('')}</ul>
+       </div>`
+    : `<div class="folder"><h3>On this computer only</h3>
+         <p class="what">Nothing waiting. Everything on this laptop is already on GitHub.</p></div>`;
+
+  return `<!doctype html>
+<meta charset="utf-8"><title>Phoenix file structure</title>
+<style>${STYLE}</style>
+<div class="bar"><b>What is in the team folder</b><a href="/">&larr; Back to dashboard</a></div>
+<div class="wrap wide"><div class="layout">
+
+  <div class="side">
+    <h4 style="margin:6px 8px 10px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#666">
+      What is GitHub?</h4>
+    <p class="what" style="margin:0 8px 14px">
+      GitHub is a copy of the team folder that lives on the internet instead of on one laptop.</p>
+    <p class="what" style="margin:0 8px 14px">
+      Every laptop keeps its own copy. When you press <b>Save and send to GitHub</b>, your
+      work is copied up. When you press <b>Download latest missions</b>, everyone else's
+      work is copied down to you.</p>
+    <p class="what" style="margin:0 8px 14px">
+      It never forgets. Every version of every program is still in there, with the date and
+      who saved it - so a mistake can always be undone.</p>
+    <p class="what" style="margin:0 8px 14px">
+      That history is also the proof the judges want: it shows what the team tried, and when.</p>
+    <button class="plain" style="width:100%" onclick="location.href='/'">Back to dashboard</button>
+  </div>
+
+  <div class="panel">
+    <h1>${files.length} files on GitHub</h1>
+    ${tree}
+    ${notSent}
+  </div>
+
+</div></div>`;
 }
 
 // ------------------------------------------------------------------- the server
@@ -442,6 +610,7 @@ http.createServer((req, res) => {
     return send('application/json', JSON.stringify(out));
   }
 
+  if (req.url === '/files') return send('text/html; charset=utf-8', filesPage());
   if (req.url === '/blog') return send('text/html; charset=utf-8', blogPage());
   send('text/html; charset=utf-8', DASHBOARD);
 }).listen(PORT, () => {
