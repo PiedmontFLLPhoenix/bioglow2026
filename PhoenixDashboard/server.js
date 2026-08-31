@@ -255,9 +255,16 @@ const STYLE = `
   .folder li { font: 14px ui-monospace, monospace; padding: 1px 0; }
   .folder.warn h3 { color: #8a5a00; }
   .side .what { font-size: 14px; color: #444; line-height: 1.55; }
-  .switch { display: flex; gap: 8px; margin: 14px 0 4px; }
-  .switch button { flex: 1; text-align: center; padding: 11px 6px; font-size: 14px; }
-  .switch button.on { background: #16233a; color: #fff; }
+  .picks { margin: 6px 0 2px; }
+  .pick { display: flex; align-items: center; gap: 11px; padding: 10px 12px; margin-bottom: 7px;
+          border: 1px solid #c3c3bd; border-radius: 8px; background: #fff; cursor: pointer; }
+  .pick:hover { background: #f6f6f2; }
+  .pick input { position: absolute; opacity: 0; }
+  .pick .box { flex: none; width: 20px; height: 20px; border: 2px solid #9a9a92; border-radius: 5px; }
+  .pick input:checked + .box { background: #16233a; border-color: #16233a; }
+  .pick input:checked + .box::after { content: '\\2713'; display: block; color: #fff;
+          text-align: center; line-height: 19px; font-size: 14px; font-weight: 700; }
+  .pick:has(input:checked) { border-color: #16233a; background: #f2f5fa; }
   .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px;
          border-radius: 20px; background: #e4e9f1; color: #16233a; vertical-align: 2px; }
   .tag.project { background: #e6f0e3; color: #24521a; }
@@ -292,10 +299,10 @@ const DASHBOARD = `<!doctype html>
   <h1>Today&rsquo;s entry</h1>
 
   <label>What did you work on today?</label>
-  <div class="switch">
-    <button class="plain" data-kind="robot">Robot</button>
-    <button class="plain" data-kind="mission">Mission</button>
-    <button class="plain" data-kind="project">Innovation project</button>
+  <div class="picks">
+    <label class="pick"><input type="radio" name="kind" value="robot"><span class="box"></span>Robot</label>
+    <label class="pick"><input type="radio" name="kind" value="mission"><span class="box"></span>Mission</label>
+    <label class="pick"><input type="radio" name="kind" value="project"><span class="box"></span>Innovation project</label>
   </div>
 
   <label>Who was here <span class="hint">everyone at the table today</span></label>
@@ -334,15 +341,15 @@ const DASHBOARD = `<!doctype html>
 const FIELDS = ['who', 'mission', 'tried', 'happened', 'next', 'author'];  // sources is optional
 const el = id => document.getElementById(id);
 const result = el('result');
-const choices = [...document.querySelectorAll('.switch button')];
+const picks = [...document.querySelectorAll('.pick input')];   // only one can be on
 let kind = localStorage.getItem('log.kind') || null;
 
 function choose(k) {
   kind = k;
   localStorage.setItem('log.kind', k);
-  choices.forEach(b => b.classList.toggle('on', b.dataset.kind === k));
+  picks.forEach(r => r.checked = r.value === k);
 }
-choices.forEach(b => b.onclick = () => choose(b.dataset.kind));
+picks.forEach(r => r.onchange = () => choose(r.value));
 if (kind) choose(kind);
 
 // Keep what they typed, in case the page reloads or the black window gets closed.
@@ -386,7 +393,7 @@ el('update').onclick = async () => {
 el('save').onclick = async () => {
   if (!kind) {
     result.innerHTML = '<div class="step bad">Click what you worked on today: Robot, Mission or Innovation project.</div>';
-    document.querySelector('.switch').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.querySelector('.picks').scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
 
@@ -418,7 +425,7 @@ el('save').onclick = async () => {
       FIELDS.concat('sources').forEach(id => { el(id).value = ''; localStorage.removeItem('log.' + id); });
       localStorage.removeItem('log.kind');
       kind = null;
-      choices.forEach(b => b.classList.remove('on'));
+      picks.forEach(r => r.checked = false);
       result.innerHTML += '<div class="done">All done. Nice work today!</div>';
     }
   } catch (e) {
