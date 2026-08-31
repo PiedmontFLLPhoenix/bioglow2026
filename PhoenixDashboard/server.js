@@ -250,8 +250,6 @@ const DASHBOARD = `<!doctype html>
 
   <div class="side">
     <button id="update">Download latest missions</button>
-    <span class="hint">get the newest code and log entries from the rest of the team</span>
-
     <button class="plain" onclick="location.href='/blog'">Read engineering blog</button>
     <button class="plain" onclick="window.open('https://code.pybricks.com', '_blank')">Open Pybricks</button>
   </div>
