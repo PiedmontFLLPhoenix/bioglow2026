@@ -9,6 +9,9 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 
 const REPO = path.resolve(__dirname, '..');
+// Node loads this file once at startup. If a pull replaces it, the running tool is stale
+// until someone restarts it - so remember what we started with, and say so if it changes.
+const RUNNING_VERSION = fs.statSync(__filename).mtimeMs;
 const NOTEBOOK = path.join(REPO, 'notebook');
 const PORT = 4545;
 
@@ -167,6 +170,11 @@ function updateFromGitHub() {
   const lines = log.ok && log.out ? log.out.split('\n') : [];
   say(`Updated. You got ${lines.length} new change${lines.length === 1 ? '' : 's'} from the team.`, true);
   lines.forEach(l => say('  ' + l.replace(/^\S+\s/, ''), true));
+
+  if (fs.statSync(__filename).mtimeMs !== RUNNING_VERSION) {
+    say('The team log tool itself was updated. Close the black window and start Team log ' +
+        'again to get the new version. Your work is safe either way.', 'warn');
+  }
   return { steps };
 }
 
@@ -227,6 +235,7 @@ const STYLE = `
   #save { margin-top: 26px; font-size: 17px; }
   .step { padding: 9px 12px; border-radius: 6px; margin: 7px 0; background: #e8f4ea; }
   .step.bad { background: #fdeaea; }
+  .step.warn { background: #fff5db; }
   .step .more { display: block; margin-top: 5px; font: 12px ui-monospace, monospace;
                 color: #555; white-space: pre-wrap; }
   .done { margin-top: 16px; padding: 14px; border-radius: 8px; background: #16233a; color: #fff; font-weight: 600; }
@@ -373,8 +382,8 @@ function ask(gate) {
 
 function show(steps) {
   result.innerHTML = steps.map(s =>
-    '<div class="step' + (s.ok ? '' : ' bad') + '">' + s.msg +
-    (s.details && !s.ok ? '<span class="more">' + s.details + '</span>' : '') + '</div>'
+    '<div class="step' + (s.ok === true ? '' : s.ok === 'warn' ? ' warn' : ' bad') + '">' + s.msg +
+    (s.details && s.ok !== true ? '<span class="more">' + s.details + '</span>' : '') + '</div>'
   ).join('');
 }
 
