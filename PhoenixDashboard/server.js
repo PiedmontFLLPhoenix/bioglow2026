@@ -112,9 +112,9 @@ function saveAndPush(f) {
 
   const commit = git('commit', '-m', commitMessage);
   if (!commit.ok) { say(explain(commit.out), false, commit.out); return { steps, pushed: false }; }
-  say(f.kind === 'project'
-        ? 'Your entry is packed up, ready to send'
-        : 'Your entry and your Pybricks code are packed up together', true, commit.out);
+  say(f.kind === 'robot' || f.kind === 'mission'
+        ? 'Your entry and your Pybricks code are packed up together'
+        : 'Your entry is packed up, ready to send', true, commit.out);
 
   const pull = git('pull', '--rebase');
   if (!pull.ok) {
