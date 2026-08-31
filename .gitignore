@@ -1,0 +1,8 @@
+# Junk the operating system makes. Never belongs in the team repo.
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Half-finished Chrome downloads
+*.crdownload
+*.tmp
