@@ -123,9 +123,11 @@ function updateFromGitHub() {
   const steps = [];
   const say = (msg, ok, details) => steps.push({ msg, ok, details: details || '' });
 
-  const dirty = git('status', '--porcelain');
+  // Only changes to files Git already knows about can break the update.
+  // A brand new Pybricks export is untracked and harmless, so it does not block anything.
+  const dirty = git('status', '--porcelain', '--untracked-files=no');
   if (dirty.ok && dirty.out) {
-    say('You have work on this computer that is not saved yet. Write your log entry and press ' +
+    say('You have changes on this computer that are not saved yet. Write your log entry and press ' +
         '"Save and send to GitHub" first, then update.', false, dirty.out);
     return { steps };
   }
