@@ -55,7 +55,8 @@ function today() {
 const KINDS = {
   robot:   { label: 'Robot' },
   mission: { label: 'Mission' },
-  project: { label: 'Innovation project' }
+  project: { label: 'Innovation project' },
+  other:   { label: 'Other' }
 };
 
 function writeEntry(f) {
@@ -301,6 +302,7 @@ const DASHBOARD = `<!doctype html>
     <label class="pick"><input type="radio" name="kind" value="robot"><span class="box"></span>Robot</label>
     <label class="pick"><input type="radio" name="kind" value="mission"><span class="box"></span>Mission</label>
     <label class="pick"><input type="radio" name="kind" value="project"><span class="box"></span>Innovation project</label>
+    <label class="pick"><input type="radio" name="kind" value="other"><span class="box"></span>Other</label>
   </div>
 
   <label>Who was here <span class="hint">everyone at the table today</span></label>
@@ -390,7 +392,7 @@ el('update').onclick = async () => {
 
 el('save').onclick = async () => {
   if (!kind) {
-    result.innerHTML = '<div class="step bad">Click what you worked on today: Robot, Mission or Innovation project.</div>';
+    result.innerHTML = '<div class="step bad">Click what you worked on today: Robot, Mission, Innovation project or Other.</div>';
     document.querySelector('.picks').scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
@@ -403,7 +405,7 @@ el('save').onclick = async () => {
   }
 
   // The Pybricks question only makes sense when there was code to download.
-  const gates = kind === 'project'
+  const gates = (kind === 'project' || kind === 'other')
     ? [{ ask: 'Did you clean up and put everything away?', ifNo: 'Please do that and come back!' }]
     : [{ ask: 'Did you remember to save and download your code from Pybricks?',
          ifNo: 'Go back to Pybricks, click Backup to download your program, then press the button again.' },
@@ -447,6 +449,7 @@ function blogPage() {
              <button data-kind="robot" class="plain">Robot</button>
              <button data-kind="mission" class="plain">Mission</button>
              <button data-kind="project" class="plain">Project</button>
+             <button data-kind="other" class="plain">Other</button>
            </div>
            ${entries.map((e, i) => `<button data-i="${i}" data-kind="${e.kind}">
                <span class="date">${escape(e.label)}</span>
