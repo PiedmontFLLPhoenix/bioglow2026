@@ -1,0 +1,81 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Phoenix team log - setup</title>
+<style>
+  body { font: 17px/1.65 system-ui, sans-serif; margin: 0; color: #1a1a1a; background: #fbfbfa; }
+  .bar { background: #16233a; color: #fff; padding: 16px 22px; font-size: 19px; font-weight: 700; }
+  .wrap { max-width: 700px; margin: 0 auto; padding: 26px 22px 70px; }
+  h2 { margin-top: 38px; border-bottom: 2px solid #e4e4de; padding-bottom: 6px; }
+  code { background: #ececeb; padding: 2px 6px; border-radius: 4px;
+         font: 15px ui-monospace, monospace; }
+  pre { background: #16233a; color: #eaeaea; padding: 14px 16px; border-radius: 8px;
+        overflow-x: auto; font: 14px ui-monospace, monospace; }
+  .note { background: #fff8dc; border-left: 5px solid #e0b400; padding: 12px 16px;
+          border-radius: 0 8px 8px 0; margin: 18px 0; }
+  .who { color: #666; font-size: 15px; }
+  ol > li { margin-bottom: 10px; }
+</style>
+<div class="bar">Phoenix team log &mdash; setting up a laptop</div>
+<div class="wrap">
+
+<p class="who">Steps 1&ndash;5 are a grown-up job, once per laptop. Step 6 is what the kids do every week.</p>
+
+<h2>1. Install Node.js</h2>
+<p>Go to <a href="https://nodejs.org">nodejs.org</a> and take the big green <b>LTS</b> button.
+Click Next through the installer.</p>
+
+<h2>2. Install Git</h2>
+<p><b>Windows:</b> <a href="https://git-scm.com">git-scm.com</a> &mdash; Next through it, all the defaults are fine.<br>
+<b>Mac:</b> open Terminal, type <code>git --version</code>. If it offers to install developer tools, say yes.</p>
+
+<h2>3. Get the team folder</h2>
+<p>Install <a href="https://desktop.github.com">GitHub Desktop</a>, sign in with the team GitHub
+account, and clone <code>PiedmontFLLPhoenix/bioglow2026</code>.</p>
+<p>On Windows, clone it to <code>C:\FLL</code>. Same place on every laptop keeps step 5 simple.</p>
+
+<h2>4. Sign this laptop in to GitHub</h2>
+<p>Open Terminal (Mac) or Git Bash (Windows) and run these two lines, changing the name:</p>
+<pre>git config --global user.name "Phoenix Laptop 2"
+git config --global user.email "phoenix.team@example.com"</pre>
+
+<p>Then, in GitHub Desktop: change any small thing (add a line to <code>README.md</code>),
+press <b>Commit</b>, then press <b>Push</b>.</p>
+
+<div class="note"><b>Do not skip that push.</b> Pushing once by hand is what makes GitHub
+remember this laptop. If you skip it, every kid's save will fail. The tool will say
+&ldquo;This computer is not set up yet&rdquo; &mdash; that means come back here.</div>
+
+<h2>5. Point Chrome's downloads at the missions folder</h2>
+<p>Chrome &rarr; Settings &rarr; Downloads &rarr; Location &rarr; <code>C:\FLL\missions</code><br>
+and turn <b>off</b> &ldquo;Ask where to save each file&rdquo;.</p>
+<p>Now when a kid clicks Backup in Pybricks, the program lands straight in the team folder.</p>
+
+<h2>6. Start it</h2>
+<p>Double-click <b>PhoenixDashboard &rarr; start-team-log.bat</b> (on a Mac,
+<code>start-team-log.command</code>).</p>
+<p>A black window opens and the browser goes to the tool by itself.
+<b>Leave the black window open</b> &mdash; closing it turns the tool off.</p>
+<p>Make a shortcut to the <code>.bat</code> on the desktop and call it <b>Team log</b>.</p>
+
+<h2>What the kids do each session</h2>
+<ol>
+  <li>Double-click <b>Team log</b>.</li>
+  <li>Press <b>Update my folders from GitHub</b> to get what the rest of the team did.</li>
+  <li>Work in Pybricks. Click <b>Backup</b> whenever a program is worth keeping.</li>
+  <li>Write the entry: who, mission, what we tried, what happened, what next.</li>
+  <li>Press <b>Save and send to GitHub</b> and answer the two questions.</li>
+  <li><b>Read engineering blog</b> shows the whole season, newest first.</li>
+</ol>
+
+<h2>If something goes wrong</h2>
+<p>The tool explains itself in plain words. A red message that mentions the coach means
+the work is safe on that laptop and nothing is lost &mdash; it just hasn't reached GitHub yet.
+Pressing the button again later usually sends it.</p>
+<p>The small grey text under a red message is the real technical detail. That's for the coach.</p>
+
+<h2>One rule the software can't enforce</h2>
+<p><b>One person per mission program.</b> Pybricks block files cannot be combined &mdash; if two
+laptops edit the same program, one of them loses their work. Decide who owns which mission.
+Different missions on different laptops at the same time is completely fine.</p>
+
+</div>
