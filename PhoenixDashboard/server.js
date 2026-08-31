@@ -155,14 +155,6 @@ function updateFromGitHub() {
 
 // --------------------------------------------------------------- reading entries
 
-function readEntries() {
-  if (!fs.existsSync(NOTEBOOK)) return [];
-  return fs.readdirSync(NOTEBOOK)
-    .filter(n => n.endsWith('.md'))
-    .sort().reverse()               // filenames start with the date, so this is newest first
-    .map(name => ({ name, body: fs.readFileSync(path.join(NOTEBOOK, name), 'utf8') }));
-}
-
 const escape = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 // Tiny markdown renderer. It only needs to handle the entries this tool writes.
@@ -177,6 +169,23 @@ function render(md) {
     else html.push(`<p>${t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')}</p>`);
   }
   return html.join('\n');
+}
+
+function readEntries() {
+  if (!fs.existsSync(NOTEBOOK)) return [];
+  return fs.readdirSync(NOTEBOOK)
+    .filter(n => n.endsWith('.md'))
+    .sort().reverse()               // filenames start with the date, so this is newest first
+    .map(name => {
+      const body = fs.readFileSync(path.join(NOTEBOOK, name), 'utf8');
+      const find = (label) => (body.match(new RegExp('\\*\\*' + label + ':\\*\\*\\s*(.+)')) || [])[1] || '';
+      return {
+        name,
+        label: name.replace('.md', ''),
+        names: find('Written by') || find('Who was here'),
+        html: render(body)
+      };
+    });
 }
 
 // ------------------------------------------------------------------ the pages
@@ -209,10 +218,21 @@ const STYLE = `
   .card p { font-size: 19px; font-weight: 600; margin: 0 0 22px; }
   .card .row { display: flex; gap: 12px; justify-content: center; }
   [hidden] { display: none !important; }
-  .entry { background: #fff; border: 1px solid #e4e4de; border-radius: 10px; padding: 4px 22px 18px; margin-bottom: 22px; }
-  .entry h2 { font-size: 19px; } .entry h3 { font-size: 15px; color: #444; margin-bottom: 2px; }
-  .menu { background: #fff; border: 1px solid #e4e4de; border-radius: 10px; padding: 14px 22px; margin-bottom: 26px; }
-  .menu a { display: block; padding: 4px 0; color: #1f6feb; text-decoration: none; }
+  .layout { display: grid; grid-template-columns: 270px 1fr; gap: 26px; align-items: start; }
+  .wide { max-width: 1040px; }
+  .menu { background: #fff; border: 1px solid #e4e4de; border-radius: 10px; padding: 12px;
+          position: sticky; top: 18px; max-height: calc(100vh - 130px); overflow-y: auto; }
+  .menu h4 { margin: 6px 8px 10px; font-size: 13px; text-transform: uppercase;
+             letter-spacing: .05em; color: #666; }
+  .menu button { display: block; width: 100%; text-align: left; background: none; color: #1a1a1a;
+                 border-radius: 7px; padding: 9px 10px; font-weight: 500; font-size: 15px; }
+  .menu button:hover { background: #f0f0ec; }
+  .menu button.on { background: #16233a; color: #fff; }
+  .menu .date { display: block; font-weight: 600; }
+  .menu .names { display: block; font-size: 13px; color: #666; }
+  .menu button.on .names { color: #b9c9e2; }
+  .entry { background: #fff; border: 1px solid #e4e4de; border-radius: 10px; padding: 4px 26px 22px; }
+  .entry h2 { font-size: 21px; } .entry h3 { font-size: 15px; color: #444; margin-bottom: 2px; }
   .empty { background: #fff; border: 1px dashed #c3c3bd; border-radius: 10px; padding: 30px; text-align: center; color: #666; }
 `;
 
@@ -340,22 +360,47 @@ el('save').onclick = async () => {
 
 function blogPage() {
   const entries = readEntries();
+  const data = JSON.stringify(entries).replace(/</g, '\\u003c');
+
   const body = entries.length
-    ? `<div class="menu"><strong>Jump to an entry</strong>` +
-      entries.map((e, i) => `<a href="#e${i}">${escape(e.name.replace('.md', ''))}</a>`).join('') +
-      `</div>` +
-      entries.map((e, i) => `<div class="entry" id="e${i}">${render(e.body)}</div>`).join('')
+    ? `<div class="layout">
+         <div class="menu">
+           <h4>Jump to an entry</h4>
+           ${entries.map((e, i) => `<button data-i="${i}">
+               <span class="date">${escape(e.label)}</span>
+               ${e.names ? `<span class="names">${escape(e.names)}</span>` : ''}
+             </button>`).join('')}
+         </div>
+         <div class="entry" id="pane"></div>
+       </div>`
     : `<div class="empty">No entries yet. Write the first one on the dashboard!</div>`;
 
   return `<!doctype html>
 <meta charset="utf-8"><title>Phoenix engineering blog</title>
 <style>${STYLE}</style>
 <div class="bar"><b>Phoenix engineering blog</b><a href="/">&larr; Back to dashboard</a></div>
-<div class="wrap">
-  <p>${entries.length} entr${entries.length === 1 ? 'y' : 'ies'}, newest first.</p>
+<div class="wrap wide">
+  <p>${entries.length} entr${entries.length === 1 ? 'y' : 'ies'}, newest first.
+     Click one on the left to read it.</p>
   ${body}
-  <p><button class="plain" onclick="location.href='/'">Back to dashboard</button></p>
-</div>`;
+  <p style="margin-top:26px"><button class="plain" onclick="location.href='/'">Back to dashboard</button></p>
+</div>
+<script>
+const ENTRIES = ${data};
+if (ENTRIES.length) {
+  const buttons = [...document.querySelectorAll('.menu button')];
+  const open = (i) => {
+    document.getElementById('pane').innerHTML = ENTRIES[i].html;
+    buttons.forEach((b, n) => b.classList.toggle('on', n === i));
+    localStorage.setItem('blog.open', ENTRIES[i].name);
+  };
+  buttons.forEach(b => b.onclick = () => open(Number(b.dataset.i)));
+
+  // Reopen whatever was last being read, otherwise the newest entry.
+  const was = ENTRIES.findIndex(e => e.name === localStorage.getItem('blog.open'));
+  open(was === -1 ? 0 : was);
+}
+</script>`;
 }
 
 // ------------------------------------------------------------------- the server
