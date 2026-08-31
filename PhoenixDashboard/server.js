@@ -231,6 +231,12 @@ const STYLE = `
   .menu .date { display: block; font-weight: 600; }
   .menu .names { display: block; font-size: 13px; color: #666; }
   .menu button.on .names { color: #b9c9e2; }
+  .side { background: #fff; border: 1px solid #e4e4de; border-radius: 10px; padding: 14px;
+          position: sticky; top: 18px; }
+  .side button { display: block; width: 100%; text-align: left; margin-bottom: 8px; }
+  .side .hint { display: block; margin: -2px 4px 16px; }
+  .panel { background: #fff; border: 1px solid #e4e4de; border-radius: 10px; padding: 6px 26px 26px; }
+  .panel h1 { font-size: 21px; }
   .entry { background: #fff; border: 1px solid #e4e4de; border-radius: 10px; padding: 4px 26px 22px; }
   .entry h2 { font-size: 21px; } .entry h3 { font-size: 15px; color: #444; margin-bottom: 2px; }
   .empty { background: #fff; border: 1px dashed #c3c3bd; border-radius: 10px; padding: 30px; text-align: center; color: #666; }
@@ -239,15 +245,18 @@ const STYLE = `
 const DASHBOARD = `<!doctype html>
 <meta charset="utf-8"><title>Phoenix team log</title>
 <style>${STYLE}</style>
-<div class="bar">
-  <b>Phoenix team log</b>
-  <a href="/blog">Read engineering blog</a>
-  <a href="https://code.pybricks.com" target="_blank">Open Pybricks</a>
-</div>
-<div class="wrap">
-  <p><button id="update" class="plain">Update my folders from GitHub</button>
-     <span class="hint">get the newest code and log entries from the rest of the team</span></p>
+<div class="bar"><b>Phoenix team log</b></div>
+<div class="wrap wide"><div class="layout">
 
+  <div class="side">
+    <button id="update">Download latest missions</button>
+    <span class="hint">get the newest code and log entries from the rest of the team</span>
+
+    <button class="plain" onclick="location.href='/blog'">Read engineering blog</button>
+    <button class="plain" onclick="window.open('https://code.pybricks.com', '_blank')">Open Pybricks</button>
+  </div>
+
+  <div class="panel">
   <h1>Today&rsquo;s entry</h1>
 
   <label>Who was here <span class="hint">everyone at the table today</span></label>
@@ -265,7 +274,9 @@ const DASHBOARD = `<!doctype html>
 
   <button id="save">Save and send to GitHub</button>
   <div id="result"></div>
-</div>
+  </div>
+
+</div></div>
 
 <div class="modal" id="modal" hidden><div class="card">
   <p id="question"></p>
