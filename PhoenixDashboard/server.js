@@ -255,16 +255,14 @@ const STYLE = `
   .folder li { font: 14px ui-monospace, monospace; padding: 1px 0; }
   .folder.warn h3 { color: #8a5a00; }
   .side .what { font-size: 14px; color: #444; line-height: 1.55; }
-  .picks { margin: 6px 0 2px; }
-  .pick { display: flex; align-items: center; gap: 11px; padding: 10px 12px; margin-bottom: 7px;
-          border: 1px solid #c3c3bd; border-radius: 8px; background: #fff; cursor: pointer; }
-  .pick:hover { background: #f6f6f2; }
+  .picks { display: flex; flex-wrap: wrap; gap: 22px; margin: 8px 0 4px; }
+  .pick { display: flex; align-items: center; gap: 9px; cursor: pointer; }
   .pick input { position: absolute; opacity: 0; }
   .pick .box { flex: none; width: 20px; height: 20px; border: 2px solid #9a9a92; border-radius: 5px; }
   .pick input:checked + .box { background: #16233a; border-color: #16233a; }
   .pick input:checked + .box::after { content: '\\2713'; display: block; color: #fff;
           text-align: center; line-height: 19px; font-size: 14px; font-weight: 700; }
-  .pick:has(input:checked) { border-color: #16233a; background: #f2f5fa; }
+  .pick:has(input:checked) { font-weight: 600; }
   .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px;
          border-radius: 20px; background: #e4e9f1; color: #16233a; vertical-align: 2px; }
   .tag.project { background: #e6f0e3; color: #24521a; }
