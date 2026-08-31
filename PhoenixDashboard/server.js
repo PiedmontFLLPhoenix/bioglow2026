@@ -50,19 +50,12 @@ function today() {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
-// The robot and the innovation project need different questions, so each entry
-// records which one it is and gets headings to match.
+// Every entry says what the team worked on that day. The questions are the same
+// for all three; only the label and the file name change.
 const KINDS = {
-  robot: {
-    label: 'Robot',
-    tried: 'What we tried',
-    happened: 'What happened'
-  },
-  project: {
-    label: 'Innovation project',
-    tried: 'What we did',
-    happened: 'What we found out'
-  }
+  robot:   { label: 'Robot' },
+  mission: { label: 'Mission' },
+  project: { label: 'Innovation project' }
 };
 
 function writeEntry(f) {
@@ -80,10 +73,10 @@ function writeEntry(f) {
     `**Who was here:** ${f.who}`,
     `**Written by:** ${f.author}`,
     ``,
-    `## ${KINDS[kind].tried}`,
+    `## What we tried`,
     f.tried,
     ``,
-    `## ${KINDS[kind].happened}`,
+    `## What happened`,
     f.happened,
     ``,
     ...(f.sources ? [`## Who we talked to, or where we found it`, f.sources, ``] : []),
@@ -206,7 +199,7 @@ function readEntries() {
         name,
         label: name.replace('.md', ''),
         names: find('Written by') || find('Who was here'),
-        kind: find('Kind') === KINDS.project.label ? 'project' : 'robot',
+        kind: (Object.keys(KINDS).find(k => KINDS[k].label === find('Kind')) || 'robot'),
         html: render(body)
       };
     });
@@ -263,13 +256,13 @@ const STYLE = `
   .folder.warn h3 { color: #8a5a00; }
   .side .what { font-size: 14px; color: #444; line-height: 1.55; }
   .switch { display: flex; gap: 8px; margin: 14px 0 4px; }
-  .switch button { flex: 1; text-align: center; padding: 11px 8px; }
+  .switch button { flex: 1; text-align: center; padding: 11px 6px; font-size: 14px; }
   .switch button.on { background: #16233a; color: #fff; }
   .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px;
          border-radius: 20px; background: #e4e9f1; color: #16233a; vertical-align: 2px; }
   .tag.project { background: #e6f0e3; color: #24521a; }
   .filter { display: flex; gap: 6px; margin-bottom: 12px; }
-  .filter button { flex: 1; text-align: center; padding: 7px 4px; font-size: 13px; }
+  .filter button { flex: 1; text-align: center; padding: 7px 2px; font-size: 12px; }
   .filter button.on { background: #16233a; color: #fff; }
   .side { background: #fff; border: 1px solid #e4e4de; border-radius: 10px; padding: 14px;
           position: sticky; top: 18px; }
@@ -298,25 +291,26 @@ const DASHBOARD = `<!doctype html>
   <div class="panel">
   <h1>Today&rsquo;s entry</h1>
 
+  <label>What did you work on today?</label>
   <div class="switch">
-    <button id="t-robot" class="plain">Robot</button>
-    <button id="t-project" class="plain">Innovation project</button>
+    <button class="plain" data-kind="robot">Robot</button>
+    <button class="plain" data-kind="mission">Mission</button>
+    <button class="plain" data-kind="project">Innovation project</button>
   </div>
 
   <label>Who was here <span class="hint">everyone at the table today</span></label>
   <input id="who">
-  <label id="l-mission"></label>
+  <label>Which mission, or which part of the project
+    <span class="hint">for example: M09 platform, or talking to an expert</span></label>
   <input id="mission">
-  <label id="l-tried"></label>
+  <label>What did we try <span class="hint">what did you change, test or find out?</span></label>
   <textarea id="tried"></textarea>
-  <label id="l-happened"></label>
+  <label>What happened <span class="hint">did it work? how many times out of how many?</span></label>
   <textarea id="happened"></textarea>
-  <div id="row-sources" hidden>
-    <label>Who we talked to, or where we found it
-      <span class="hint">names, websites, books &mdash; judges ask for these</span></label>
-    <input id="sources">
-  </div>
-  <label id="l-next"></label>
+  <label>Who we talked to, or where we found it
+    <span class="hint">only if you asked someone or used a website - otherwise leave empty</span></label>
+  <input id="sources">
+  <label>What next <span class="hint">what should the team try next time?</span></label>
   <textarea id="next"></textarea>
   <label>Your name <span class="hint">who is writing this</span></label>
   <input id="author">
@@ -337,58 +331,25 @@ const DASHBOARD = `<!doctype html>
 </div></div>
 
 <script>
-// Two kinds of session, two sets of questions.
-const TYPES = {
-  robot: {
-    mission:  ['Which mission', 'for example: M09 platform'],
-    tried:    ['What did we try', 'what did you change or test?'],
-    happened: ['What happened', 'did it work? how many times out of how many?'],
-    next:     ['What next', 'what should the team try next time?'],
-    gates: [
-      { ask: 'Did you remember to save and download your code from Pybricks?',
-        ifNo: 'Go back to Pybricks, click Backup to download your program, then press the button again.' },
-      { ask: 'Did you clean up your parts?', ifNo: 'Please do that and come back!' }
-    ]
-  },
-  project: {
-    mission:  ['Which part of the project', 'for example: talking to an expert'],
-    tried:    ['What did we do', 'research, an idea, a model, asking someone?'],
-    happened: ['What did we find out', 'what did you learn, or what did they tell you?'],
-    next:     ['What next', 'what should the team do next time?'],
-    gates: [
-      { ask: 'Did you write down who you talked to, or where you found it?',
-        ifNo: 'Add it in the box above - the judges always ask where your facts came from.' },
-      { ask: 'Did you clean up and put everything away?', ifNo: 'Please do that and come back!' }
-    ]
-  }
-};
-
-const BASE = ['who', 'mission', 'tried', 'happened', 'next', 'author'];
+const FIELDS = ['who', 'mission', 'tried', 'happened', 'next', 'author'];  // sources is optional
 const el = id => document.getElementById(id);
 const result = el('result');
-let kind = localStorage.getItem('log.kind') || 'robot';
+const choices = [...document.querySelectorAll('.switch button')];
+let kind = localStorage.getItem('log.kind') || null;
 
-const fields = () => kind === 'project' ? BASE.concat('sources') : BASE;
-
-function setType(k) {
+function choose(k) {
   kind = k;
   localStorage.setItem('log.kind', k);
-  el('t-robot').classList.toggle('on', k === 'robot');
-  el('t-project').classList.toggle('on', k === 'project');
-  el('row-sources').hidden = k !== 'project';
-  ['mission', 'tried', 'happened', 'next'].forEach(id => {
-    el('l-' + id).innerHTML = TYPES[k][id][0] + ' <span class="hint">' + TYPES[k][id][1] + '</span>';
-  });
+  choices.forEach(b => b.classList.toggle('on', b.dataset.kind === k));
 }
-el('t-robot').onclick = () => setType('robot');
-el('t-project').onclick = () => setType('project');
+choices.forEach(b => b.onclick = () => choose(b.dataset.kind));
+if (kind) choose(kind);
 
 // Keep what they typed, in case the page reloads or the black window gets closed.
-BASE.concat('sources').forEach(id => {
+FIELDS.concat('sources').forEach(id => {
   el(id).value = localStorage.getItem('log.' + id) || '';
   el(id).addEventListener('input', () => localStorage.setItem('log.' + id, el(id).value));
 });
-setType(kind);
 
 function ask(gate) {
   return new Promise(resolve => {
@@ -423,14 +384,27 @@ el('update').onclick = async () => {
 };
 
 el('save').onclick = async () => {
-  const entry = { kind: kind };
-  fields().forEach(id => entry[id] = el(id).value.trim());
-  if (fields().some(id => !entry[id])) {
+  if (!kind) {
+    result.innerHTML = '<div class="step bad">Click what you worked on today: Robot, Mission or Innovation project.</div>';
+    document.querySelector('.switch').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  const entry = { kind: kind, sources: el('sources').value.trim() };
+  FIELDS.forEach(id => entry[id] = el(id).value.trim());
+  if (FIELDS.some(id => !entry[id])) {
     result.innerHTML = '<div class="step bad">Please fill in every box first.</div>';
     return;
   }
 
-  for (const gate of TYPES[kind].gates) {
+  // The Pybricks question only makes sense when there was code to download.
+  const gates = kind === 'project'
+    ? [{ ask: 'Did you clean up and put everything away?', ifNo: 'Please do that and come back!' }]
+    : [{ ask: 'Did you remember to save and download your code from Pybricks?',
+         ifNo: 'Go back to Pybricks, click Backup to download your program, then press the button again.' },
+       { ask: 'Did you clean up your parts?', ifNo: 'Please do that and come back!' }];
+
+  for (const gate of gates) {
     if (!await ask(gate)) { result.innerHTML = ''; return; }   // No = nothing is saved
   }
 
@@ -441,7 +415,10 @@ el('save').onclick = async () => {
     const data = await res.json();
     show(data.steps);
     if (data.pushed) {
-      fields().forEach(id => { el(id).value = ''; localStorage.removeItem('log.' + id); });
+      FIELDS.concat('sources').forEach(id => { el(id).value = ''; localStorage.removeItem('log.' + id); });
+      localStorage.removeItem('log.kind');
+      kind = null;
+      choices.forEach(b => b.classList.remove('on'));
       result.innerHTML += '<div class="done">All done. Nice work today!</div>';
     }
   } catch (e) {
@@ -463,6 +440,7 @@ function blogPage() {
            <div class="filter">
              <button data-kind="all" class="plain on">All</button>
              <button data-kind="robot" class="plain">Robot</button>
+             <button data-kind="mission" class="plain">Mission</button>
              <button data-kind="project" class="plain">Project</button>
            </div>
            ${entries.map((e, i) => `<button data-i="${i}" data-kind="${e.kind}">
