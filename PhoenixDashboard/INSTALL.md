@@ -11,6 +11,9 @@ https://nodejs.org — take the big green "LTS" button, click Next through the i
 ## 2. Install Git
 
 **Windows:** https://git-scm.com — Next through the installer, all defaults are fine.
+Install this even if you already have GitHub Desktop: GitHub Desktop keeps its own private
+copy of Git that the tool cannot see.
+
 **Mac:** open Terminal and type `git --version`; if it asks to install developer tools, say yes.
 
 ## 3. Get the team folder
@@ -18,7 +21,9 @@ https://nodejs.org — take the big green "LTS" button, click Next through the i
 Install GitHub Desktop (https://desktop.github.com), sign in with the team GitHub account,
 and clone `PiedmontFLLPhoenix/bioglow2026`.
 
-**On Windows, clone it to `C:\FLL`.** Same path on every laptop keeps step 5 simple.
+**Clone it wherever you like.** Documents is fine, `C:\FLL` is fine. The tool works out where
+the team folder is from its own location, so every laptop can keep it somewhere different.
+Write down where you put it — step 5 needs it.
 
 ## 4. Tell Git who this laptop is, and sign it in
 
@@ -33,28 +38,37 @@ with an error they can't do anything about.
 
 ## 5. Point Chrome's downloads at the missions folder
 
-Chrome → Settings → Downloads → Location → `C:\FLL\missions`
-(and turn **off** "Ask where to save each file").
+Open the `missions` folder inside the team folder in Explorer, click the address bar, and copy
+the path. Then: Chrome → Settings → Downloads → Location → paste it, and turn **off**
+"Ask where to save each file".
 
 Now when a kid clicks Backup in Pybricks, the program lands straight in the team folder.
 
-## 6. Start it
+## 6. Start it, and make a proper shortcut
 
 Double-click **`PhoenixDashboard\start-team-log.bat`** (Mac: `start-team-log.command`).
 
 A black window opens and the browser goes to http://localhost:4545 by itself.
 **Leave the black window open** — closing it turns the tool off.
 
-Make a shortcut to the `.bat` on the desktop and call it "Team log".
+To give the team a real icon instead of a `.bat` file:
+
+1. Right-click `start-team-log.bat` → **Send to → Desktop (create shortcut)**
+2. Rename the shortcut to **Team log**
+3. Right-click it → **Properties → Change Icon → Browse**
+4. Pick `PhoenixDashboard\team-log.ico` from the team folder, then OK, then OK
+5. Drag the shortcut to the taskbar, or right-click it → **Pin to taskbar**
+
+The browser tab shows the same icon, so the tool is easy to find among open tabs.
 
 ---
 
 ## What the kids do each session
 
 1. Double-click **Team log**.
-2. Press **Update my folders from GitHub** — this brings down what the rest of the team did.
+2. Press **Download latest missions** — this brings down what the rest of the team did.
 3. Work in Pybricks. Click **Backup** whenever a program is worth keeping.
-4. Write the entry: who, mission, what we tried, what happened, what next.
+4. Write the entry: tick what they worked on, then who, what we tried, what happened, what next.
 5. Press **Save and send to GitHub** and answer the two questions.
 6. **Read engineering blog** shows the whole season, newest first.
 
@@ -65,6 +79,9 @@ the work is safe on that laptop, and nothing is lost — it just hasn't reached 
 Pressing the button again later usually sends it.
 
 Under a red message there's small grey text with the real technical detail. That's for the coach.
+
+A yellow message means the tool updated itself and needs restarting: close the black window
+and start Team log again.
 
 ## One rule that isn't in the software
 

@@ -25,13 +25,17 @@
 Click Next through the installer.</p>
 
 <h2>2. Install Git</h2>
-<p><b>Windows:</b> <a href="https://git-scm.com">git-scm.com</a> &mdash; Next through it, all the defaults are fine.<br>
+<p><b>Windows:</b> <a href="https://git-scm.com">git-scm.com</a> &mdash; Next through it, all the defaults are fine.
+Install this even if you already have GitHub Desktop: GitHub Desktop keeps its own private copy
+of Git that the tool cannot see.<br>
 <b>Mac:</b> open Terminal, type <code>git --version</code>. If it offers to install developer tools, say yes.</p>
 
 <h2>3. Get the team folder</h2>
 <p>Install <a href="https://desktop.github.com">GitHub Desktop</a>, sign in with the team GitHub
 account, and clone <code>PiedmontFLLPhoenix/bioglow2026</code>.</p>
-<p>On Windows, clone it to <code>C:\FLL</code>. Same place on every laptop keeps step 5 simple.</p>
+<p><b>Clone it wherever you like.</b> Documents is fine, <code>C:\FLL</code> is fine. The tool works
+out where the team folder is from its own location, so every laptop can keep it somewhere
+different. Write down where you put it &mdash; step 5 needs it.</p>
 
 <h2>4. Sign this laptop in to GitHub</h2>
 <p>Open Terminal (Mac) or Git Bash (Windows) and run these two lines, changing the name:</p>
@@ -46,23 +50,35 @@ remember this laptop. If you skip it, every kid's save will fail. The tool will 
 &ldquo;This computer is not set up yet&rdquo; &mdash; that means come back here.</div>
 
 <h2>5. Point Chrome's downloads at the missions folder</h2>
-<p>Chrome &rarr; Settings &rarr; Downloads &rarr; Location &rarr; <code>C:\FLL\missions</code><br>
+<p>Open the <code>missions</code> folder inside the team folder in Explorer, click the address bar,
+and copy the path. Then: Chrome &rarr; Settings &rarr; Downloads &rarr; Location &rarr; paste it,
 and turn <b>off</b> &ldquo;Ask where to save each file&rdquo;.</p>
 <p>Now when a kid clicks Backup in Pybricks, the program lands straight in the team folder.</p>
 
-<h2>6. Start it</h2>
+<h2>6. Start it, and make a proper shortcut</h2>
 <p>Double-click <b>PhoenixDashboard &rarr; start-team-log.bat</b> (on a Mac,
 <code>start-team-log.command</code>).</p>
 <p>A black window opens and the browser goes to the tool by itself.
 <b>Leave the black window open</b> &mdash; closing it turns the tool off.</p>
-<p>Make a shortcut to the <code>.bat</code> on the desktop and call it <b>Team log</b>.</p>
+<p>To give the team a real icon instead of a <code>.bat</code> file:</p>
+<ol>
+  <li>Right-click <code>start-team-log.bat</code> &rarr; <b>Send to &rarr; Desktop (create shortcut)</b></li>
+  <li>Rename the shortcut to <b>Team log</b></li>
+  <li>Right-click it &rarr; <b>Properties &rarr; Change Icon &rarr; Browse</b></li>
+  <li>Pick <code>PhoenixDashboard\team-log.ico</code> from the team folder, then OK, then OK</li>
+  <li>Drag the shortcut to the taskbar, or right-click it &rarr; <b>Pin to taskbar</b></li>
+</ol>
+<p style="text-align:center;margin:22px 0">
+  <img src="icon-preview.png" alt="the team log icon" width="96" height="96"
+       style="border-radius:20px"><br>
+  <span class="who">The browser tab shows the same icon.</span></p>
 
 <h2>What the kids do each session</h2>
 <ol>
   <li>Double-click <b>Team log</b>.</li>
   <li>Press <b>Update my folders from GitHub</b> to get what the rest of the team did.</li>
   <li>Work in Pybricks. Click <b>Backup</b> whenever a program is worth keeping.</li>
-  <li>Write the entry: who, mission, what we tried, what happened, what next.</li>
+  <li>Write the entry: tick what they worked on, then who, what we tried, what happened, what next.</li>
   <li>Press <b>Save and send to GitHub</b> and answer the two questions.</li>
   <li><b>Read engineering blog</b> shows the whole season, newest first.</li>
 </ol>
@@ -72,6 +88,8 @@ and turn <b>off</b> &ldquo;Ask where to save each file&rdquo;.</p>
 the work is safe on that laptop and nothing is lost &mdash; it just hasn't reached GitHub yet.
 Pressing the button again later usually sends it.</p>
 <p>The small grey text under a red message is the real technical detail. That's for the coach.</p>
+<p>A yellow message means the tool updated itself and needs restarting: close the black window
+and start Team log again.</p>
 
 <h2>One rule the software can't enforce</h2>
 <p><b>One person per mission program.</b> Pybricks block files cannot be combined &mdash; if two

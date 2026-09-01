@@ -216,6 +216,8 @@ function readEntries() {
 
 // ------------------------------------------------------------------ the pages
 
+const FAVICON = `<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%2316233a'/><path d='M32 7C32 7 47 31 47 41A15 15 0 0 1 17 41C17 31 32 7 32 7Z' fill='%236fe6e0'/></svg>">`;
+
 const STYLE = `
   :root { color-scheme: light; }
   body { font: 16px/1.5 system-ui, sans-serif; margin: 0; color: #1a1a1a; background: #fbfbfa; }
@@ -291,7 +293,7 @@ const STYLE = `
 `;
 
 const DASHBOARD = `<!doctype html>
-<meta charset="utf-8"><title>Phoenix team log</title>
+<meta charset="utf-8"><title>Phoenix team log</title>${FAVICON}
 <style>${STYLE}</style>
 <div class="bar"><b>Phoenix team log</b></div>
 <div class="wrap wide"><div class="layout">
@@ -470,7 +472,7 @@ function blogPage() {
     : `<div class="empty">No entries yet. Write the first one on the dashboard!</div>`;
 
   return `<!doctype html>
-<meta charset="utf-8"><title>Phoenix engineering blog</title>
+<meta charset="utf-8"><title>Phoenix engineering blog</title>${FAVICON}
 <style>${STYLE}</style>
 <div class="bar"><b>Phoenix engineering blog</b><a href="/">&larr; Back to dashboard</a></div>
 <div class="wrap wide">
@@ -507,7 +509,8 @@ if (ENTRIES.length) {
 const FOLDERS = {
   'missions':         'Robot programs. This is where Pybricks files land when you press Backup.',
   'notebook':         'Every engineering log entry. This is what the judges read.',
-  'PhoenixDashboard': 'The team log tool itself - this program you are using right now.'
+  'PhoenixDashboard': 'The team log tool itself - this program you are using right now.',
+  'the main folder':  'Notes about the team and the repo.'
 };
 
 function filesPage() {
@@ -545,7 +548,7 @@ function filesPage() {
          <p class="what">Nothing waiting. Everything on this laptop is already on GitHub.</p></div>`;
 
   return `<!doctype html>
-<meta charset="utf-8"><title>Phoenix file structure</title>
+<meta charset="utf-8"><title>Phoenix file structure</title>${FAVICON}
 <style>${STYLE}</style>
 <div class="bar"><b>What is in the team folder</b><a href="/">&larr; Back to dashboard</a></div>
 <div class="wrap wide"><div class="layout">
