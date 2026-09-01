@@ -219,29 +219,35 @@ function readEntries() {
 const FAVICON = `<link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAANQElEQVR42i1X91uU57b9/gSfAMMM03svzDAwMwxV+iCgAhZAxoiIJRbEYEMRxYInmliixpLEkoSjiZUgluSqJ3I0KsdjjImJibHhVQkgoCb33Gfdhbk/vM83vB/fu9fee+219ytUW2OEIwG1sDpeJVRaxSP2Z2oblznkXbkqMVKk0fDGiOCQRMLMZRRHcEXBHjO8RDCIh1cUTMPvYyJhl0bCyeWWRbxeTukbcMT89ZyglXQtdioawzbZiHlWubDdpRImGKWCcDDTJJzKMAsHskzh85NtvZ1FZiywy1GsiUGGLBp+qQgeLicNxNJwrDQKca/3ohCQR7/es/OdSxYFrzwSPkUEErmSFG8gOPxb/gaSlRGYaBThWJoOZ0ZZejclGcOtaVZhV4JWEH6stAt3mseEH6/PRk99HDqLLGhyKFCjkyNfLkGyTAQ/jfjoWRJ/JxNUKgGM5DOLANL5HN5P4u9UhQj5GhEyVVHIVEYikwByFJEo5V69JQaXRxtxb7IL9+an4GpddviQXycIT98Ljhg6XNI7tCsbzxbF478KjVjnUmGzW4NJailGKcVIGzZKI9k0UqySIF8hRgHBjZbHoFARgwKuMUopJqikmKKVolIjwRh1NIr4bQVT2WCQY4NVicv5JjysdqOnOR2/75/Y+6C5cIQweHxK41DnTAweGo/BoyX4doodbXlG3Cx1YodLi0qd9LWnxWoaUcVgjoHR4QqrlKjiqtGqMFmrwESVDNVqOer5bq5eRiAxqOA327x6XBrjxd44NdoztXhQ68PTFYkYOjEJf15f0igcy3R29bZV4dXT7Xh5cyqe7fHh53or7sx24Gq+DbuSzag1ybHWrcR0Hr7QrEJrwIh9fjN2xBmxwKDGKu41WDWYpVFgtkaORv4+kOLER3Tg8kg7njQm46sCLW4tisXL8xUYbK/BH6cm4N9vj+wSjo51o600ES++q8erexvx8tEavLxegu6PUtCZa8bZDBM6kvTYkaDFGo8aCxnK/UETOkMunEgxY6tbhxUmFbY71WgyK7HapsIXQRuOprrQNTYe3Q2j0PdJAZ58mYvBaxV48eMy/PloB66vCOGLTDuETSEHdiYacbYmGfe3jcGzC8sw9GszXvxrGm4vcOBksh4X8q34vsSBSyELPknU0Ts9rhQ7cTJoxh6PAR+7dNhmU+MdRqIj0YDT6Sas1MlwLM+OgXN1eHGxBn23WtDdUYPuXQW42hTC/nQjWif7IbQkmNDgM+P9FBu2eVT4jJ6dmxtC16ZJuL0tF3eXB3G7KRHdy/24FLDiuxw77i7x4tG6RNytTcBPtV7cKnejM8uOdgLp8BtwrdSGzjIXHmzMwrPT8/HvneU4PjMbh0pc+ChFi92ZFqwmyHeYHuH9Qg/WJ1mx0m3EPIsO9Q4u5nB1Siw+yPaiPceCa3Up6P+yAncXJuHeDDd+3+zHi4PpGNiXhqE9KXhcn4B/5dlwJdfCqPnx/JsqfL8yF+dLXfg0z42/MSW1djWavTpsCRrwXrIJB4rcOFIeC+HUpAAOlfmwMejAXJcZMx1GTDNpMN9uwKqAAxtJtq0M7dnKBAy1jcXgliS8OBDEHx0j8efpDLw6nI6e1T50z45F30YPBo4U4uzcFGwgcd/1aLHBZ0BTrB4zzWrUeSw80479jOKVWQH8sG4khN1l8diSYsVahwFVJj0qdGqWmRq1Ng2mGZRYxI/e9TFcdh3ubcikYa7jqRg4EcJ/t4bwoiMPL/cH0L8hDs/3J6B780i84zZgBT1ucBkw36JBs1uLt+hEhU6FaTYDdifbcYocOvJmPIS22pE4MC6AmQYdJqqVFA850WrQ5DRgAdkdVikoSErUaZQ4WeLBy4ujMHh1PH74OISO4njc3RLCf87l4o+vkjH0VRa+meRFo16O2XoV6k1qLLWosMSuYnrVFCc5yrhfZ9PjaHkA367LgbA1246lDFGZXP5aUKp0SkzVyDCJwjJDSzA0PF6tQJFGjUX88P57DP29evzvf/binyuzcbrYjf/5bTr+vFOOhx8UYrNDj3l6JeYa1VhOR+ayGsopYEsJoIZ/V/HdOIUMiz16bA6RA50tIfy9OgFrYnWYppYhrJTwKcVUop3MaJQTSBk/yidBC4y61+m4uTYdL2+34HhVEHtJqMErs3Fnew52JFooxzJMMCowx6TEMqawQa/APIJYbpWzv8TgTcr1SgrYvvJkfNPMCHzM5nNltgfHxjqwJ9uEz1KNVDUdeaBC6bC+E0wVD5vFKI0265CpZz6tapwfZcanJOguSu2xAjvmObTIojTnMYJzKErzuSZTxsezZ8xi2Ld6dDiZbqCyanCUtr6dG48HqxIgzHfJcXaKCz1bstH/bgj3GI3WVDPmWBQYx4i8yTTMsNAbMrrJZ0SpVYtcErWORF3p1GMTCbd4eE+vxmjuNcTpsN6nxtteDWoIvJLpnExndjI6v1X7MLAzC9170vDzAjcO0WGhzCTBqqAWZye58GxdKu4tS8D39X7sy9XjBGv7YKoNa+ONmM+qWEptn05Wl9BQnlaJEHW/mLwJs2wruD+dkWl0qLGY3bQl2YhjRS5cGG3Fpzzr5jI/eqgZA3/Pxg9LEvBFIdt+rAJCiioaozVirElUoa3CjhuLkvBgdRJ6dpNs+wrRu4NEm+hCHSuigaW1mEBms6ZzSMx4mQSeGAnSVXLMItuXsw80O1RYyv/toBo+3pyGlx9nov9AFvq3BvHTihScL3dgW7wCZbSbx7YuBNizk5XRGKOTYI1fhc6pbjxaE8TzD7PQd2gMHn+Ug/uNPrQVmtGWbcGHPj0bjhLlJGkSAaRJxSjmGU3s+Ryz8DXV8NJkB7rXJ6Nnbzr6vy7H75sycbcpHr80+vHPqS7UmyUsdw478igIw/OdRy5CGgeHWr8auwpoaJQWd+Z4cGtNGr4Za8CjnanoP5GGZ9sCuL8uHt9ONWGJVYpSEmwcv60ziHCxyoBfl3nwdDPzfDIRfR3j8WipBU8+C3E/EZs4ZbVkG7AoVYccrZjR+2uUE2ySv4ZM//DEQ1TlTEcziXkwVYt9OQbs5fNaXSKe7k1DT3s+nh3OwkBbLo4Um6gdIozjQduSpOzz+Rj4Rx4GbhTjCUn226qR+K7KhK/DBhwN6bDUo+CcGY1kjm1epQg2fmcaBmCIjoRNwimWk22Qk08+0zGH89vyWBkaPEq8T25cKOEs1xCHH9724fvpFvTtTMMXrJyRnIoLmYLPJxjx6lgKenfFoZ+y/KDRi9NZamz3y7HSJ8eiWClqeF6BTowAz3cThIUOmzjYCnoCsHLcjiWAAEftCSYZa1pOxDI2DyW2pihxaoIVPy4O4NLcRFyd4cGXYScWZpgR1CngV0iwLNOI02+52Lo9+G11Mm7MiMWuDAPLV4JqB4UnVcPKkKPKEINYzpd2GnfQWSefgi46AjYCGB61kxmWiaYYVHNtCKhxqMiBD0N2HCzz4Hill3NCGk6X+9CSZMdkakK2S49MClCFW40Wvw7/YB+43ZKDztpEHK8J4kP2jvbpQeweZ0GZkcOrWgIvme8gCCvvHFrJ/0fAyR8ZzEshiTiGeQoTwCyngt4b0MGR7WZTCm6tzceTT8bj5+ZU1rUVCyhM5Q5OzrEaLIxV4XCmHr80D88CFej7qgK/tGTg87GxWBQ0YopLgSy9GH6G30/P7XTWRJsaXmoEoyiiy0sO5PFlCbU6nyjDDNWKOAUuv+VkLSfh4a4MfLeEOf4gg5Xgx6+L7DhbbsEOvxYfJGlwZqIZv7xlQf+RIIaujEb33jw83JmH82/HY1u+GTVMaYaK9wsFLzUkroehNxOAOjqyS3CJ3mj0SURIYP4zSI4izv2zzFJs8SpwrtyKy9U2fF1mwoNlboqJH0MXCvD8QBIev+fD9Uozut60oXutF/3bfXh5pQCDB1PwtDEOl2Y5cbzEhi1ZZpTSsUR67iPphq95dnEkb1ysguiIxmEAI/xiUW+AJVFGMarmxWKKnu2T17OTZPL5Aj2uh024X+tA7yepeN5ejP4zJbi/3odHNNS91ofnrRzNzpXi+fExGDyTg77FHjzk3HggXY8FVgUjK+XlhrcmcixPGfW64lziyF5Gf4TgFkcIceLIsI+b+QzPaKpamEDmWGU4maPCTzPofb0LNxiJ+xuZhmO5eHG5gvcHitPRHAyeHIU/ro3FwMUS9LeF0PN5DodWJyPmxa9r4tn9VBhHADk0nsYoj6KNAMOvF0WG9ZGRguCJiRScogjBI44IB2Si3gnkwES1GNVmGetYiTNjzThcpEcrSXaRt6bHuzPQ316AgbOc888UYuBQLl51laCPxrt3pFLvE9BezHE9S4dPyf4VlPdijRQhsj+ZAMyiqF6PKCpsiYoUrFHDACSRgjcmWojnM0MuGlGmkTSOU4m7Kg3skk4pPgsosMUjR6tPhcu8N95nyB//LQl9ezicHs1Ff2s2htpH4cH6JBoP4MZUO/YlsnM6lZhCTRnP/BexurJk0V2+mOhGU7RohEUkEmxc8dFRwv8B91sEqgD2sBcAAAAASUVORK5CYII=">`;
 
 const STYLE = `
+  /* Colours sampled from the team's phoenix picture: ground #191412, embers
+     #732a1d to #cc6632, flames #eb9a45 and #f3b74c. */
   :root { color-scheme: light; }
-  body { font: 16px/1.5 system-ui, sans-serif; margin: 0; color: #1a1a1a; background: #fbfbfa; }
-  .bar { background: #16233a; color: #fff; padding: 14px 20px; display: flex; align-items: center; gap: 20px; }
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 0; color: #241a15; background: #faf6f2; }
+  .bar { background: #1f1310; color: #fff; padding: 14px 20px; display: flex; align-items: center; gap: 20px; }
   .bar b { font-size: 18px; }
-  .bar a { color: #9fd0ff; text-decoration: none; font-weight: 600; }
+  .bar a { color: #f3b74c; text-decoration: none; font-weight: 600; }
   .wrap { max-width: 720px; margin: 0 auto; padding: 24px 20px 60px; }
   label { display: block; margin: 18px 0 5px; font-weight: 600; }
-  .hint { font-weight: 400; color: #666; font-size: 14px; }
+  .hint { font-weight: 400; color: #7a6a60; font-size: 14px; }
   input, textarea { width: 100%; font: inherit; padding: 9px; box-sizing: border-box;
-                    border: 1px solid #c3c3bd; border-radius: 6px; background: #fff; }
+                    border: 1px solid #ddd0c6; border-radius: 6px; background: #fff; }
+  input:focus, textarea:focus { outline: 2px solid #cc6632; border-color: #cc6632; }
   textarea { min-height: 78px; resize: vertical; }
   button { font: inherit; font-weight: 600; padding: 13px 22px; border: 0; border-radius: 8px;
-           background: #1f6feb; color: #fff; cursor: pointer; }
-  button.plain { background: #e6e6e1; color: #1a1a1a; }
+           background: #c1521f; color: #fff; cursor: pointer; }
+  button:hover { background: #a94425; }
+  button.plain { background: #efe6de; color: #241a15; }
+  button.plain:hover { background: #e6d8cd; }
   button:disabled { opacity: .5; cursor: default; }
   #save { margin-top: 26px; font-size: 17px; }
-  .step { padding: 9px 12px; border-radius: 6px; margin: 7px 0; background: #e8f4ea; }
-  .step.bad { background: #fdeaea; }
-  .step.warn { background: #fff5db; }
+  .step { padding: 9px 12px; border-radius: 6px; margin: 7px 0; background: #e7f2e7; }
+  .step.bad { background: #fbe6e0; }
+  .step.warn { background: #fdf0d5; }
   .step .more { display: block; margin-top: 5px; font: 12px ui-monospace, monospace;
-                color: #555; white-space: pre-wrap; }
-  .done { margin-top: 16px; padding: 14px; border-radius: 8px; background: #16233a; color: #fff; font-weight: 600; }
-  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex;
+                color: #6b5a50; white-space: pre-wrap; }
+  .done { margin-top: 16px; padding: 14px; border-radius: 8px; background: #1f1310;
+          color: #f3b74c; font-weight: 600; }
+  .modal { position: fixed; inset: 0; background: rgba(25,20,18,.6); display: flex;
            align-items: center; justify-content: center; padding: 20px; }
   .card { background: #fff; border-radius: 12px; padding: 26px; max-width: 440px; text-align: center; }
   .card p { font-size: 19px; font-weight: 600; margin: 0 0 22px; }
@@ -249,48 +255,50 @@ const STYLE = `
   [hidden] { display: none !important; }
   .layout { display: grid; grid-template-columns: 270px 1fr; gap: 26px; align-items: start; }
   .wide { max-width: 1040px; }
-  .menu { background: #fff; border: 1px solid #e4e4de; border-radius: 10px; padding: 12px;
+  .menu { background: #fff; border: 1px solid #eaded4; border-radius: 10px; padding: 12px;
           position: sticky; top: 18px; max-height: calc(100vh - 130px); overflow-y: auto; }
   .menu h4 { margin: 6px 8px 10px; font-size: 13px; text-transform: uppercase;
-             letter-spacing: .05em; color: #666; }
-  .menu button { display: block; width: 100%; text-align: left; background: none; color: #1a1a1a;
+             letter-spacing: .05em; color: #7a6a60; }
+  .menu button { display: block; width: 100%; text-align: left; background: none; color: #241a15;
                  border-radius: 7px; padding: 9px 10px; font-weight: 500; font-size: 15px; }
-  .menu button:hover { background: #f0f0ec; }
-  .menu button.on { background: #16233a; color: #fff; }
+  .menu button:hover { background: #f7ece4; }
+  .menu button.on { background: #732a1d; color: #fff; }
   .menu .date { display: block; font-weight: 600; }
-  .menu .names { display: block; font-size: 13px; color: #666; }
-  .menu button.on .names { color: #b9c9e2; }
+  .menu .names { display: block; font-size: 13px; color: #7a6a60; }
+  .menu button.on .names { color: #f0c39a; }
   .folder { margin-bottom: 22px; }
   .folder h3 { margin: 0 0 3px; font: 600 16px ui-monospace, monospace; }
-  .folder .what { margin: 0 0 8px; color: #555; font-size: 14px; }
+  .folder .what { margin: 0 0 8px; color: #6b5a50; font-size: 14px; }
   .folder ul { margin: 0; padding-left: 22px; }
   .folder li { font: 14px ui-monospace, monospace; padding: 1px 0; }
-  .folder.warn h3 { color: #8a5a00; }
-  .side .what { font-size: 14px; color: #444; line-height: 1.55; }
+  .folder.warn h3 { color: #9c5a12; }
+  .side .what { font-size: 14px; color: #4a3a32; line-height: 1.55; }
   .picks { display: flex; flex-wrap: wrap; gap: 22px; margin: 8px 0 4px; }
   .pick { display: flex; align-items: center; gap: 9px; cursor: pointer; }
   .pick input { position: absolute; opacity: 0; }
-  .pick .box { flex: none; width: 20px; height: 20px; border: 2px solid #9a9a92; border-radius: 5px; }
-  .pick input:checked + .box { background: #16233a; border-color: #16233a; }
+  .pick .box { flex: none; width: 20px; height: 20px; border: 2px solid #b8a99d; border-radius: 5px; }
+  .pick input:checked + .box { background: #c1521f; border-color: #c1521f; }
   .pick input:checked + .box::after { content: '\\2713'; display: block; color: #fff;
           text-align: center; line-height: 19px; font-size: 14px; font-weight: 700; }
   .pick:has(input:checked) { font-weight: 600; }
   .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px;
-         border-radius: 20px; background: #e4e9f1; color: #16233a; vertical-align: 2px; }
-  .tag.project { background: #e6f0e3; color: #24521a; }
+         border-radius: 20px; background: #f3e2d8; color: #732a1d; vertical-align: 2px; }
+  .tag.project { background: #e7f0e0; color: #35521a; }
   .filter { display: flex; gap: 6px; margin-bottom: 12px; }
   .filter button { flex: 1; text-align: center; padding: 7px 2px; font-size: 12px; }
-  .filter button.on { background: #16233a; color: #fff; }
-  .side { background: #fff; border: 1px solid #e4e4de; border-radius: 10px; padding: 14px;
+  .filter button.on { background: #732a1d; color: #fff; }
+  .side { background: #fff; border: 1px solid #eaded4; border-radius: 10px; padding: 14px;
           position: sticky; top: 18px; }
   .side button { display: block; width: 100%; text-align: left; margin-bottom: 8px; }
   .side .hint { display: block; margin: -2px 4px 16px; }
-  .panel { background: #fff; border: 1px solid #e4e4de; border-radius: 10px; padding: 6px 26px 26px; }
+  .panel { background: #fff; border: 1px solid #eaded4; border-radius: 10px; padding: 6px 26px 26px; }
   .panel h1 { font-size: 21px; }
-  .entry { background: #fff; border: 1px solid #e4e4de; border-radius: 10px; padding: 4px 26px 22px; }
-  .entry h2 { font-size: 21px; } .entry h3 { font-size: 15px; color: #444; margin-bottom: 2px; }
-  .empty { background: #fff; border: 1px dashed #c3c3bd; border-radius: 10px; padding: 30px; text-align: center; color: #666; }
+  .entry { background: #fff; border: 1px solid #eaded4; border-radius: 10px; padding: 4px 26px 22px; }
+  .entry h2 { font-size: 21px; } .entry h3 { font-size: 15px; color: #6b4a3a; margin-bottom: 2px; }
+  .empty { background: #fff; border: 1px dashed #ddd0c6; border-radius: 10px; padding: 30px;
+           text-align: center; color: #7a6a60; }
 `;
+
 
 const DASHBOARD = `<!doctype html>
 <meta charset="utf-8"><title>Phoenix team log</title>${FAVICON}
