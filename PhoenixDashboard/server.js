@@ -505,8 +505,7 @@ if (ENTRIES.length) {
 
 // What each folder in the team repo is for, in words a 10-year-old can use.
 const FOLDERS = {
-  'code':             'Robot programs the team has finished with and wants to keep.',
-  'missions':         'Where Pybricks programs land when you press Backup.',
+  'missions':         'Robot programs. This is where Pybricks files land when you press Backup.',
   'notebook':         'Every engineering log entry. This is what the judges read.',
   'PhoenixDashboard': 'The team log tool itself - this program you are using right now.'
 };
