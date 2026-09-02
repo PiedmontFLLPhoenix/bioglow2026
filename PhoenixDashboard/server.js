@@ -291,6 +291,10 @@ const STYLE = `
           position: sticky; top: 18px; }
   .side button { display: block; width: 100%; text-align: left; margin-bottom: 8px; }
   .side .hint { display: block; margin: -2px 4px 16px; }
+  .side #result:not(:empty) { margin-top: 14px; border-top: 1px solid #eaded4; padding-top: 12px; }
+  .side .step { font-size: 14px; padding: 8px 10px; line-height: 1.45; }
+  .side .step .more { font-size: 11px; overflow-wrap: anywhere; }
+  .side .done { font-size: 15px; padding: 12px; }
   .panel { background: #fff; border: 1px solid #eaded4; border-radius: 10px; padding: 6px 26px 26px; }
   .panel h1 { font-size: 21px; }
   .entry { background: #fff; border: 1px solid #eaded4; border-radius: 10px; padding: 4px 26px 22px; }
@@ -311,6 +315,8 @@ const DASHBOARD = `<!doctype html>
     <button class="plain" onclick="location.href='/blog'">Read engineering blog</button>
     <button class="plain" onclick="location.href='/files'">File structure</button>
     <button class="plain" onclick="window.open('https://code.pybricks.com', '_blank')">Open Pybricks</button>
+
+    <div id="result"></div>
   </div>
 
   <div class="panel">
@@ -342,7 +348,6 @@ const DASHBOARD = `<!doctype html>
   <input id="author">
 
   <button id="save">Save and send to GitHub</button>
-  <div id="result"></div>
   </div>
 
 </div></div>
