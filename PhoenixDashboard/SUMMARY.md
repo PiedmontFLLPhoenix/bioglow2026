@@ -33,13 +33,19 @@ from Pybricks?" — No cancels the save entirely. Then "Did you clean up your pa
 to go do it and come back. Innovation project and Other entries skip the Pybricks question,
 since there is no code to download. Both answers get written into the entry.
 
-**Sending it to GitHub.** One button. Behind it: `git add`, `commit`, `pull --rebase`, `push`.
-The commit message is built from the entry — kind, mission, a one-line summary and the name —
-so `git log` reads as a season history rather than a wall of identical rows.
+**Sending it to GitHub.** Saving an entry commits only the entry file, with the kid as the
+git author, then runs the same sync as the *Sync with GitHub* button. The commit message is
+built from the entry — kind, mission, a one-line summary and the name — so `git log` reads as
+a season history rather than a wall of identical rows.
 
-**Getting other people's work.** *Download latest missions* pulls down what the rest of the
-team pushed and names the changes in plain words. It refuses to run when there are unsaved
-changes to tracked files, but a fresh untracked Pybricks export does not block it.
+**Syncing.** *Sync with GitHub* fetches, checks every changed file, commits, `pull --rebase`,
+then pushes. Pybricks keeps its own copy of each program in the browser, so a laptop can hold
+a stale copy without knowing it. The tool records in `.git/phoenix-sync.json` which version of
+each program this laptop's Pybricks last had. If GitHub's version has moved on since then,
+the tool never merges: it keeps the teammate's file and saves this laptop's next to it as
+`Name-from-kid.py`. An unchanged stale copy is quietly replaced. Deleted files, empty files
+and files identical to an older version need a yes from the kids first. Programs that come
+down are listed until someone presses *I imported it*.
 
 **Reading the season back.** *Read engineering blog* — menu of entries on the left with names
 underneath, the chosen entry on the right, filters for All / Robot / Mission / Project / Other.

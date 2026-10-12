@@ -66,11 +66,25 @@ The browser tab shows the same icon, so the tool is easy to find among open tabs
 ## What the kids do each session
 
 1. Double-click **Team log**.
-2. Press **Download latest missions** — this brings down what the rest of the team did.
-3. Work in Pybricks. Click **Backup** whenever a program is worth keeping.
-4. Write the entry: tick what they worked on, then who, what we tried, what happened, what next.
-5. Press **Save and send to GitHub** and answer the two questions.
-6. **Read engineering blog** shows the whole season, newest first.
+2. Type your name and press **Sync with GitHub**. This sends your programs up and brings
+   down what the rest of the team did.
+3. If the yellow box lists programs to import, open each one in Pybricks first, then press
+   **I imported it**. Changing an old copy is how someone's work gets undone.
+4. Work in Pybricks. Click **Backup** whenever a program is worth keeping.
+5. Write the entry: tick what they worked on, then who, what we tried, what happened, what next.
+6. Press **Save and send to GitHub** and answer the two questions. This syncs too.
+7. **Read engineering blog** shows the whole season, newest first.
+
+## How the sync keeps work safe
+
+Before sending, the tool checks each changed program:
+
+- **Deleted, empty, or exactly an older version?** It asks first.
+- **Changed by a teammate since this laptop last had it?** It never merges two programs.
+  The teammate's version keeps the name, and this laptop's is saved next to it as
+  `Name-from-kid.py`. The kids open both in Pybricks and pick one together.
+
+Every commit carries the name of the kid who made it, so GitHub's history shows who changed what.
 
 ## If something goes wrong
 

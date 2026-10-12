@@ -13,16 +13,27 @@ const REPO = path.resolve(__dirname, '..');
 // until someone restarts it - so remember what we started with, and say so if it changes.
 const RUNNING_VERSION = fs.statSync(__filename).mtimeMs;
 const NOTEBOOK = path.join(REPO, 'notebook');
-const PORT = 4545;
+const PORT = Number(process.env.PORT) || 4545;
+
+// What this laptop knows about each program: which version its Pybricks last had
+// (`base`), and which programs came down from the team but are not imported yet
+// (`pending`). Lives inside .git so it never gets pushed.
+const STATE_FILE = path.join(REPO, '.git', 'phoenix-sync.json');
 
 // ---------------------------------------------------------------- git helpers
 
+// No terminal password prompts: they would freeze the whole tool. A login window
+// from Git Credential Manager is still allowed, so give it time to be answered.
+const GIT_ENV = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+
 function git(...args) {
   try {
-    const out = execFileSync('git', args, { cwd: REPO, encoding: 'utf8' });
-    return { ok: true, out: (out || '').trim() };
+    const raw = execFileSync('git', ['-c', 'core.quotepath=off', ...args],
+      { cwd: REPO, encoding: 'utf8', env: GIT_ENV, timeout: 120000, maxBuffer: 64 * 1024 * 1024 });
+    return { ok: true, out: (raw || '').trim(), raw: raw || '' };
   } catch (e) {
-    return { ok: false, out: ((e.stdout || '') + (e.stderr || '')).trim() };
+    const timedOut = e.code === 'ETIMEDOUT' || e.signal === 'SIGTERM' ? '\ngit timed out' : '';
+    return { ok: false, out: ((e.stdout || '') + (e.stderr || '') + timedOut).trim(), raw: '' };
   }
 }
 
@@ -98,84 +109,258 @@ function writeEntry(f) {
   return `notebook/${name}`;
 }
 
-// Each step reports a kid-facing message plus the raw git output for the coach.
-function saveAndPush(f) {
+// The kid's name goes on every commit, so GitHub shows who changed what - not just
+// which laptop. The .invalid address is reserved, so it can never belong to a real person.
+const cleanName = (s) => String(s || '').replace(/[<>\r\n]/g, '').trim() || 'Phoenix team';
+const authorFlag = (name) => `--author=${name} <${slug(name)}@phoenix.invalid>`;
+
+// Saves the log entry as its own commit on this laptop, then syncs. Once the entry is
+// committed it is safe, so pressing a button again can never write it twice.
+function saveAndSync(f) {
   const steps = [];
   const say = (msg, ok, details) => steps.push({ msg, ok, details: details || '' });
 
   const file = writeEntry(f);
-  say(`Your log entry is saved on this computer (${file})`, true);
-
+  const author = cleanName(f.author);
   const summary = (f.happened.split('\n')[0] || '').slice(0, 60);
   const kindLabel = KINDS[f.kind] ? KINDS[f.kind].label : KINDS.robot.label;
-  const commitMessage = `${kindLabel} - ${f.mission}: ${summary} (${f.author})`;
+  const commitMessage = `${kindLabel} - ${f.mission}: ${summary} (${author})`;
 
-  const add = git('add', '-A');
-  if (!add.ok) { say(explain(add.out), false, add.out); return { steps, pushed: false }; }
-
-  const commit = git('commit', '-m', commitMessage);
-  if (!commit.ok) { say(explain(commit.out), false, commit.out); return { steps, pushed: false }; }
-  say(f.kind === 'robot' || f.kind === 'mission'
-        ? 'Your entry and your Pybricks code are packed up together'
-        : 'Your entry is packed up, ready to send', true, commit.out);
-
-  const pull = git('pull', '--rebase');
-  if (!pull.ok) {
-    git('rebase', '--abort');
-    say('Someone else changed the same file. Your work is safe on this computer - ask your coach.', false, pull.out);
-    return { steps, pushed: false };
+  const add = git('add', '--', file);
+  const commit = add.ok ? git('commit', authorFlag(author), '-m', commitMessage, '--', file) : add;
+  if (!commit.ok) {
+    git('reset', '-q', '--', file);
+    fs.unlinkSync(path.join(REPO, file));   // so the next try does not leave a second copy
+    say(explain(commit.out), false, commit.out);
+    return { steps, saved: false };
   }
-  say('Checked GitHub for the rest of the team’s work', true, pull.out);
+  say(`Your log entry is saved on this computer (${file})`, true);
 
-  const push = git('push');
-  if (!push.ok) {
-    say(explain(push.out), false, push.out);
-    say('Your work is safe on this computer. Press the button again later to send it.', false);
-    return { steps, pushed: false };
-  }
-  say('Sent to GitHub. The whole team can see it now.', true, push.out);
-
-  return { steps, pushed: true };
+  const result = sync(author, {});
+  return { ...result, steps: steps.concat(result.steps), saved: true };
 }
 
-// Pulls the rest of the team's work down onto this computer.
-function updateFromGitHub() {
+// ------------------------------------------------------------------ syncing
+
+function loadState() {
+  try {
+    const s = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    return { base: s.base || {}, pending: s.pending || {} };
+  } catch (e) {
+    return { base: {}, pending: {} };
+  }
+}
+const saveState = (s) => fs.writeFileSync(STATE_FILE, JSON.stringify(s, null, 2));
+
+const onDisk = (p) => path.join(REPO, p);
+const nice = (p) => p.replace(/^missions\//, '');
+
+// Git names every version of a file by its content. Same content, same id - so
+// comparing ids tells us exactly whether two copies of a program are the same.
+function blobAt(ref, p) {
+  const r = git('rev-parse', '--verify', '-q', `${ref}:${p}`);
+  return r.ok && r.out ? r.out : null;
+}
+const blobOnDisk = (p) => fs.existsSync(onDisk(p)) ? git('hash-object', '--', p).out : null;
+
+// Every file that differs from the last commit, including brand new ones.
+function changedFiles() {
+  const parts = git('status', '--porcelain', '-z', '--untracked-files=all').raw.split('\0');
+  const files = [];
+  for (let i = 0; i < parts.length; i++) {
+    const e = parts[i];
+    if (e.length < 4) continue;
+    files.push({ path: e.slice(3), untracked: e.startsWith('??') });
+    if (e[0] === 'R' || e[0] === 'C') i++;   // a rename carries its old name as an extra entry
+  }
+  return files;
+}
+
+// Every version a file has ever had, newest first, with when and by whom.
+function pastVersions(p) {
+  const r = git('log', '--all', '--format=%x01%ad|%an', '--date=short', '--raw', '--no-abbrev', '--', p);
+  const seen = {};
+  for (const chunk of r.raw.split('\x01').slice(1)) {
+    const [head, ...lines] = chunk.split('\n');
+    const [date, who] = head.split('|');
+    for (const l of lines) {
+      const blob = l.startsWith(':') ? l.split(' ')[3] : null;
+      if (blob && !seen[blob]) seen[blob] = { date, who };
+    }
+  }
+  return seen;
+}
+
+// Puts a file back the way the last commit has it. Its content is in the history, so nothing is lost.
+function putBack(p) {
+  if (blobAt('HEAD', p)) git('checkout', 'HEAD', '--', p);
+  else if (fs.existsSync(onDisk(p))) fs.unlinkSync(onDisk(p));
+}
+
+function sideBySideName(p, who) {
+  const ext = path.extname(p);
+  const stem = ext ? p.slice(0, -ext.length) : p;
+  let name = `${stem}-from-${slug(who)}${ext}`;
+  let n = 2;
+  while (fs.existsSync(onDisk(name)) || blobAt('@{u}', name)) name = `${stem}-from-${slug(who)}-${n++}${ext}`;
+  return name;
+}
+
+// One button: check this laptop's changes, send them, and bring down everyone else's.
+// `decisions` answers the questions from an earlier try: { path: 'send' | 'skip' }.
+// Nothing on disk is touched until every question has an answer.
+function sync(author, decisions) {
   const steps = [];
   const say = (msg, ok, details) => steps.push({ msg, ok, details: details || '' });
+  const who = cleanName(author);
+  const state = loadState();
 
-  // Only changes to files Git already knows about can break the update.
-  // A brand new Pybricks export is untracked and harmless, so it does not block anything.
-  const dirty = git('status', '--porcelain', '--untracked-files=no');
-  if (dirty.ok && dirty.out) {
-    say('You have changes on this computer that are not saved yet. Write your log entry and press ' +
-        '"Save and send to GitHub" first, then update.', false, dirty.out);
-    return { steps };
+  const fetch = git('fetch');
+  if (!fetch.ok) { say(explain(fetch.out), false, fetch.out); return { steps, pending: state.pending }; }
+  if (!git('rev-parse', '--verify', '-q', '@{u}').ok) {
+    say('This laptop is not connected to the team folder on GitHub. Ask your coach.', false);
+    return { steps, pending: state.pending };
   }
 
-  const before = git('rev-parse', 'HEAD');
-  const pull = git('pull', '--rebase');
+  const send = [], putBacks = [], copies = [], ask = [], notes = [];
+
+  for (const { path: p, untracked } of changedFiles()) {
+    const mission = p.startsWith('missions/');
+    const head = blobAt('HEAD', p), theirs = blobAt('@{u}', p), mine = blobOnDisk(p);
+    // Which version this laptop's Pybricks started from. Before the first sync we
+    // cannot know, so assume the last commit.
+    const base = mission && p in state.base ? state.base[p] : head;
+
+    if (mine === theirs) { putBacks.push(p); continue; }   // already the same as GitHub
+
+    if (mission && theirs !== base) {
+      // A teammate changed this program after this laptop's Pybricks got its copy.
+      // Never merge two programs: keep both, and let the kids pick.
+      const by = git('log', '-1', '--format=%an', '@{u}', '--', p).out || 'a teammate';
+      putBacks.push(p);
+      state.pending[p] = { by, date: today() };
+      if (mine === null) {
+        notes.push(`You deleted ${nice(p)}, but ${by} changed it, so it is kept.`);
+      } else if (mine === base || pastVersions(p)[mine]) {
+        notes.push(`${nice(p)} on this laptop was an old copy. You now have ${by}’s newer version.`);
+      } else {
+        const copy = sideBySideName(p, who);
+        copies.push([p, copy]);
+        send.push(copy);
+        notes.push(`Two people changed ${nice(p)}. ${by}’s version stays as ${nice(p)}, and yours is ` +
+                   `saved as ${nice(copy)}. Open both in Pybricks and pick one together.`);
+      }
+      continue;
+    }
+
+    // A normal change. Check that it looks like something a person meant to do.
+    let question = null;
+    if (mine === null) {
+      question = { text: `${nice(p)} was deleted on this laptop. Delete it for the whole team?`,
+                   yes: 'Yes, delete it', no: 'No, bring it back' };
+    } else if (fs.statSync(onDisk(p)).size === 0) {
+      question = { text: `${nice(p)} is empty. It looks like the download did not finish. Send it anyway?`,
+                   yes: 'Send it anyway', no: 'Do not send it' };
+    } else if (mission) {
+      const old = pastVersions(p)[mine];
+      if (old) question = { text: `${nice(p)} is exactly the same as an older version, saved ${old.date} ` +
+                                  `by ${old.who}. Do you want to go back to that version?`,
+                            yes: 'Yes, go back', no: 'No, keep the newest' };
+    }
+
+    if (!question || decisions[p] === 'send') send.push(p);
+    else if (decisions[p] === 'skip') { if (!untracked) putBacks.push(p); }
+    else ask.push({ path: p, ...question });
+  }
+
+  if (ask.length) {
+    say('Before anything is sent, answer the question' + (ask.length > 1 ? 's' : '') + ' below.', 'warn');
+    return { steps, ask, pending: state.pending };
+  }
+
+  // ---- every question is answered: now change things
+  for (const [from, to] of copies) fs.copyFileSync(onDisk(from), onDisk(to));
+  for (const p of putBacks) putBack(p);
+  notes.forEach(n => say(n, 'warn'));
+
+  if (send.length) {
+    const add = git('add', '-A', '--', ...send);
+    const names = send.map(nice);
+    const commit = add.ok
+      ? git('commit', authorFlag(who), '-m', `Sync - ${who}: ${names.slice(0, 5).join(', ')}` +
+            (names.length > 5 ? ` and ${names.length - 5} more` : ''))
+      : add;
+    if (!commit.ok) { say(explain(commit.out), false, commit.out); saveState(state); return { steps, pending: state.pending }; }
+    for (const p of send) {
+      if (!p.startsWith('missions/')) continue;
+      state.base[p] = blobAt('HEAD', p);
+      delete state.pending[p];
+    }
+    say(`Packed up your changes: ${names.join(', ')}`, true, commit.out);
+  }
+  saveState(state);
+
+  const before = git('rev-parse', 'HEAD').out;
+  const incoming = git('log', '--format=%s', `${before}..@{u}`);
+  const pull = git('pull', '--rebase', '--autostash');
   if (!pull.ok) {
     git('rebase', '--abort');
-    say(explain(pull.out), false, pull.out);
-    return { steps };
-  }
-  const after = git('rev-parse', 'HEAD');
-
-  if (before.out === after.out) {
-    say('Your folders were already up to date. Nothing new from the team.', true);
-    return { steps };
+    say(/conflict/i.test(pull.out)
+          ? 'Someone changed the same file at the same moment. Your work is safe on this computer - ask your coach.'
+          : explain(pull.out), false, pull.out);
+    return { steps, pending: state.pending };
   }
 
-  const log = git('log', '--oneline', `${before.out}..${after.out}`);
-  const lines = log.ok && log.out ? log.out.split('\n') : [];
-  say(`Updated. You got ${lines.length} new change${lines.length === 1 ? '' : 's'} from the team.`, true);
-  lines.forEach(l => say('  ' + l.replace(/^\S+\s/, ''), true));
+  const news = incoming.ok && incoming.out ? incoming.out.split('\n') : [];
+  if (news.length) {
+    // Programs that came down from the team must be imported into Pybricks by hand.
+    const came = git('diff', '--name-only', '-z', before, 'HEAD', '--', 'missions').raw.split('\0').filter(Boolean);
+    for (const p of came) {
+      if (!(p in state.base)) state.base[p] = blobAt(before, p);
+      if (blobAt('HEAD', p) === state.base[p]) { delete state.pending[p]; continue; }
+      const by = git('log', '-1', '--format=%an', 'HEAD', '--', p).out || 'a teammate';
+      if (blobAt('HEAD', p)) state.pending[p] = { by, date: today() };
+      else { delete state.pending[p]; state.base[p] = null; }   // deleted by the team: nothing to import
+    }
+    saveState(state);
+    say(`You got ${news.length} new change${news.length === 1 ? '' : 's'} from the team.`, true);
+    news.forEach(l => say('  ' + l, true));
+  }
+
+  const waiting = Number(git('rev-list', '--count', '@{u}..HEAD').out) || 0;
+  if (waiting) {
+    let push = git('push');
+    if (!push.ok && /rejected|non-fast-forward|fetch first/i.test(push.out)) {
+      // Someone pushed in the last few seconds. Take their work and try once more.
+      if (git('pull', '--rebase', '--autostash').ok) push = git('push');
+      else git('rebase', '--abort');
+    }
+    if (!push.ok) {
+      say(explain(push.out), false, push.out);
+      say('Your work is safe on this computer. Press Sync with GitHub again later to send it.', false);
+      return { steps, pending: state.pending };
+    }
+    say('Sent to GitHub. The whole team can see it now.', true, push.out);
+  } else if (!news.length && !send.length) {
+    say('Everything is already in sync with GitHub.', true);
+  }
 
   if (fs.statSync(__filename).mtimeMs !== RUNNING_VERSION) {
     say('The team log tool itself was updated. Close the black window and start Team log ' +
         'again to get the new version. Your work is safe either way.', 'warn');
   }
-  return { steps };
+  return { steps, pending: state.pending, synced: true };
+}
+
+// The kids said they imported a program into Pybricks, so this laptop's copy is current.
+function markImported(p) {
+  const state = loadState();
+  if (p in state.pending) {
+    state.base[p] = blobAt('HEAD', p);
+    delete state.pending[p];
+    saveState(state);
+  }
+  return { pending: state.pending };
 }
 
 // --------------------------------------------------------------- reading entries
@@ -295,6 +480,12 @@ const STYLE = `
   .side .step { font-size: 14px; padding: 8px 10px; line-height: 1.45; }
   .side .step .more { font-size: 11px; overflow-wrap: anywhere; }
   .side .done { font-size: 15px; padding: 12px; }
+  .side .step .row { display: flex; gap: 8px; margin-top: 8px; }
+  .side .step .row button { margin: 0; padding: 7px 10px; font-size: 13px; text-align: center; }
+  #pending { margin-top: 14px; padding: 10px 12px; border-radius: 6px; background: #fdf0d5; font-size: 14px; }
+  #pending ul { margin: 6px 0 0; padding-left: 18px; }
+  #pending li { margin-bottom: 8px; }
+  #pending button { display: inline-block; width: auto; margin: 4px 0 0; padding: 4px 10px; font-size: 13px; }
   .panel { background: #fff; border: 1px solid #eaded4; border-radius: 10px; padding: 6px 26px 26px; }
   .panel h1 { font-size: 21px; }
   .entry { background: #fff; border: 1px solid #eaded4; border-radius: 10px; padding: 4px 26px 22px; }
@@ -311,11 +502,18 @@ const DASHBOARD = `<!doctype html>
 <div class="wrap wide"><div class="layout">
 
   <div class="side">
-    <button id="update">Download latest missions</button>
+    <label for="me" style="margin-top:0">Your name</label>
+    <input id="me" style="margin-bottom:10px">
+    <button id="sync">Sync with GitHub</button>
+    <span class="hint">Sends your programs up and brings the team&rsquo;s down.</span>
     <button class="plain" onclick="location.href='/blog'">Read engineering blog</button>
     <button class="plain" onclick="location.href='/files'">File structure</button>
     <button class="plain" onclick="window.open('https://code.pybricks.com', '_blank')">Open Pybricks</button>
 
+    <div id="pending" hidden>
+      <b>Import these into Pybricks before you change them</b>
+      <ul id="pendingList"></ul>
+    </div>
     <div id="result"></div>
   </div>
 
@@ -395,23 +593,81 @@ function ask(gate) {
   });
 }
 
+// Git output and teammates' text are shown as text, never as page code.
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 function show(steps) {
   result.innerHTML = steps.map(s =>
-    '<div class="step' + (s.ok === true ? '' : s.ok === 'warn' ? ' warn' : ' bad') + '">' + s.msg +
-    (s.details && s.ok !== true ? '<span class="more">' + s.details + '</span>' : '') + '</div>'
+    '<div class="step' + (s.ok === true ? '' : s.ok === 'warn' ? ' warn' : ' bad') + '">' + esc(s.msg) +
+    (s.details && s.ok !== true ? '<span class="more">' + esc(s.details) + '</span>' : '') + '</div>'
   ).join('');
 }
 
-el('update').onclick = async () => {
-  el('update').disabled = true;
-  result.innerHTML = '<div class="step">Checking GitHub&hellip;</div>';
+// The name on the sync button is remembered; the log entry uses its own "Your name" box.
+el('me').value = localStorage.getItem('sync.name') || '';
+el('me').addEventListener('input', () => localStorage.setItem('sync.name', el('me').value));
+
+async function post(url, body) {
+  const res = await fetch(url, { method: 'POST', body: JSON.stringify(body || {}) });
+  return res.json();
+}
+
+// Programs the team changed that this laptop's Pybricks does not have yet.
+function showPending(pending) {
+  const files = Object.keys(pending || {});
+  el('pending').hidden = !files.length;
+  el('pendingList').innerHTML = files.map(p =>
+    '<li><b>' + esc(p.slice(p.indexOf('/') + 1)) + '</b> <span class="hint">changed by ' + esc(pending[p].by) +
+    '</span><br><button class="plain small" data-path="' + esc(p) + '">I imported it</button></li>').join('');
+  el('pendingList').querySelectorAll('button').forEach(b => b.onclick = async () => {
+    showPending((await post('/imported', { path: b.dataset.path })).pending);
+  });
+}
+post('/state').then(d => showPending(d.pending)).catch(() => {});
+
+// Shows what happened, and asks about anything that looked wrong. Once every question
+// has an answer, the sync runs again with those answers.
+function handle(data, author) {
+  show(data.steps);
+  if (data.pending) showPending(data.pending);
+  if (!data.ask) return;
+  const decisions = {};
+  data.ask.forEach(q => {
+    const box = document.createElement('div');
+    box.className = 'step warn';
+    box.innerHTML = esc(q.text) + '<div class="row"><button>' + esc(q.yes) + '</button>' +
+                    '<button class="plain">' + esc(q.no) + '</button></div>';
+    const [yes, no] = box.querySelectorAll('button');
+    const answer = (a) => {
+      decisions[q.path] = a;
+      box.querySelector('.row').innerHTML = '<i>' + esc(a === 'send' ? q.yes : q.no) + '</i>';
+      if (data.ask.every(x => decisions[x.path])) runSync(author, decisions);
+    };
+    yes.onclick = () => answer('send');
+    no.onclick = () => answer('skip');
+    result.appendChild(box);
+  });
+}
+
+async function runSync(author, decisions) {
+  el('sync').disabled = true;
+  result.innerHTML = '<div class="step">Syncing with GitHub&hellip;</div>';
   try {
-    const res = await fetch('/update', { method: 'POST' });
-    show((await res.json()).steps);
+    handle(await post('/sync', { author: author, decisions: decisions || {} }), author);
   } catch (e) {
     result.innerHTML = '<div class="step bad">The tool stopped running. Ask your coach to start it again.</div>';
   }
-  el('update').disabled = false;
+  el('sync').disabled = false;
+}
+
+el('sync').onclick = () => {
+  const me = el('me').value.trim();
+  if (!me) {
+    result.innerHTML = '<div class="step bad">Type your name above the Sync button first.</div>';
+    el('me').focus();
+    return;
+  }
+  runSync(me);
 };
 
 el('save').onclick = async () => {
@@ -442,16 +698,17 @@ el('save').onclick = async () => {
   el('save').disabled = true;
   result.innerHTML = '<div class="step">Saving&hellip;</div>';
   try {
-    const res = await fetch('/save', { method: 'POST', body: JSON.stringify(entry) });
-    const data = await res.json();
-    show(data.steps);
-    if (data.pushed) {
+    const data = await post('/save', entry);
+    // Once the entry is saved on this laptop it must not be written twice, so the
+    // boxes empty even if sending to GitHub has to wait.
+    if (data.saved) {
       FIELDS.concat('sources').forEach(id => { el(id).value = ''; localStorage.removeItem('log.' + id); });
       localStorage.removeItem('log.kind');
       kind = null;
       picks.forEach(r => r.checked = false);
-      result.innerHTML += '<div class="done">All done. Nice work today!</div>';
     }
+    handle(data, entry.author);
+    if (data.synced) result.innerHTML += '<div class="done">All done. Nice work today!</div>';
   } catch (e) {
     result.innerHTML = '<div class="step bad">The tool stopped running. Your typing is still here &mdash; ' +
       'do not close this tab, and ask your coach to start it again.</div>';
@@ -530,10 +787,9 @@ function filesPage() {
   const tracked = git('ls-files');
   const files = tracked.ok && tracked.out ? tracked.out.split('\n') : [];
 
-  const untracked = git('status', '--porcelain', '--untracked-files=all');
-  const waiting = untracked.ok && untracked.out
-    ? untracked.out.split('\n').filter(l => l.startsWith('??')).map(l => l.slice(3))
-    : [];
+  // New, changed or deleted files, plus saved changes that have not reached GitHub yet.
+  const waiting = changedFiles().map(f => f.path);
+  const unsent = Number(git('rev-list', '--count', '@{u}..HEAD').out) || 0;
 
   // Group by top folder; anything at the root goes in its own group.
   const groups = {};
@@ -550,11 +806,12 @@ function filesPage() {
         `<li>${escape(f.includes('/') ? f.split('/').slice(1).join('/') : f)}</li>`).join('')}</ul>
     </div>`).join('');
 
-  const notSent = waiting.length
+  const notSent = waiting.length || unsent
     ? `<div class="folder warn">
          <h3>On this computer only</h3>
          <p class="what">These are not on GitHub yet. They go up the next time someone
-            presses <b>Save and send to GitHub</b>.</p>
+            presses <b>Sync with GitHub</b>.</p>
+         ${unsent ? `<p class="what">${unsent} saved change${unsent === 1 ? '' : 's'} waiting to be sent.</p>` : ''}
          <ul>${waiting.map(f => `<li>${escape(f)}</li>`).join('')}</ul>
        </div>`
     : `<div class="folder"><h3>On this computer only</h3>
@@ -572,9 +829,9 @@ function filesPage() {
     <p class="what" style="margin:0 8px 14px">
       GitHub is a copy of the team folder that lives on the internet instead of on one laptop.</p>
     <p class="what" style="margin:0 8px 14px">
-      Every laptop keeps its own copy. When you press <b>Save and send to GitHub</b>, your
-      work is copied up. When you press <b>Download latest missions</b>, everyone else's
-      work is copied down to you.</p>
+      Every laptop keeps its own copy. When you press <b>Sync with GitHub</b>, your work is
+      copied up and everyone else's work is copied down to you. Programs that came down
+      still have to be imported into Pybricks - the dashboard lists them.</p>
     <p class="what" style="margin:0 8px 14px">
       It never forgets. Every version of every program is still in there, with the date and
       who saved it - so a mistake can always be undone.</p>
@@ -594,41 +851,46 @@ function filesPage() {
 
 // ------------------------------------------------------------------- the server
 
+// Only this laptop may use the tool. Without these checks anyone on the same wifi -
+// or a web page open in another tab - could save and push to the team repo.
+const ALLOWED_HOSTS = ['localhost:' + PORT, '127.0.0.1:' + PORT];
+
+const oops = (e) => ({ steps: [{ msg: 'Something went wrong. Show this to your coach.', ok: false, details: String(e.message) }] });
+
 http.createServer((req, res) => {
   const send = (type, body) => { res.writeHead(200, { 'Content-Type': type }); res.end(body); };
 
-  if (req.method === 'POST' && req.url === '/save') {
+  if (!ALLOWED_HOSTS.includes(req.headers.host) ||
+      (req.method === 'POST' && req.headers.origin !== 'http://' + req.headers.host)) {
+    res.writeHead(403);
+    return res.end('Only this laptop can use the team log.');
+  }
+
+  // Every action is a POST with a small JSON body.
+  const actions = {
+    '/save':     (b) => saveAndSync(b),
+    '/sync':     (b) => sync(b.author, b.decisions || {}),
+    '/imported': (b) => markImported(String(b.path)),
+    '/state':    ()  => ({ pending: loadState().pending })
+  };
+  if (req.method === 'POST' && actions[req.url]) {
     let body = '';
-    req.on('data', c => body += c);
+    req.on('data', c => { body += c; if (body.length > 1e6) req.destroy(); });
     req.on('end', () => {
       let out;
-      try {
-        out = saveAndPush(JSON.parse(body));
-      } catch (e) {
-        out = { steps: [{ msg: 'Something went wrong. Show this to your coach.', ok: false, details: String(e.message) }], pushed: false };
-      }
+      try { out = actions[req.url](body ? JSON.parse(body) : {}); } catch (e) { out = oops(e); }
       send('application/json', JSON.stringify(out));
     });
     return;
   }
 
-  if (req.method === 'POST' && req.url === '/update') {
-    let out;
-    try {
-      out = updateFromGitHub();
-    } catch (e) {
-      out = { steps: [{ msg: 'Something went wrong. Show this to your coach.', ok: false, details: String(e.message) }] };
-    }
-    return send('application/json', JSON.stringify(out));
-  }
-
   if (req.url === '/files') return send('text/html; charset=utf-8', filesPage());
   if (req.url === '/blog') return send('text/html; charset=utf-8', blogPage());
   send('text/html; charset=utf-8', DASHBOARD);
-}).listen(PORT, () => {
+}).listen(PORT, '127.0.0.1', () => {
   // Open the page automatically, once the server is actually ready.
   const url = 'http://localhost:' + PORT;
-  try {
+  if (!process.env.NO_BROWSER) try {
     if (process.platform === 'win32') execFileSync('cmd', ['/c', 'start', '', url]);
     else if (process.platform === 'darwin') execFileSync('open', [url]);
     else execFileSync('xdg-open', [url]);
