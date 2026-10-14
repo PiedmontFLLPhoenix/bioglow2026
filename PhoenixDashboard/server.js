@@ -473,7 +473,7 @@ const STYLE = `
   .filter button { flex: 1; text-align: center; padding: 7px 2px; font-size: 12px; }
   .filter button.on { background: #732a1d; color: #fff; }
   .side { background: #fff; border: 1px solid #eaded4; border-radius: 10px; padding: 14px;
-          position: sticky; top: 18px; }
+          position: sticky; top: 18px; max-height: calc(100vh - 36px); overflow-y: auto; }
   .side button { display: block; width: 100%; text-align: left; margin-bottom: 8px; }
   .side .hint { display: block; margin: -2px 4px 16px; }
   .side #result:not(:empty) { margin-top: 14px; border-top: 1px solid #eaded4; padding-top: 12px; }
@@ -485,6 +485,7 @@ const STYLE = `
   #pending { margin-top: 14px; padding: 10px 12px; border-radius: 6px; background: #fdf0d5; font-size: 14px; }
   #pending ul { margin: 6px 0 0; padding-left: 18px; }
   #pending li { margin-bottom: 8px; }
+  #pending .hint { display: inline; margin: 0; }
   #pending button { display: inline-block; width: auto; margin: 4px 0 0; padding: 4px 10px; font-size: 13px; }
   .panel { background: #fff; border: 1px solid #eaded4; border-radius: 10px; padding: 6px 26px 26px; }
   .panel h1 { font-size: 21px; }
